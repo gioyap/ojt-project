@@ -6,61 +6,119 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export const signUpAction = async (formData: FormData) => {
-	const displayName = formData.get("displayName")?.toString();
-	const email = formData.get("email")?.toString();
-	const password = formData.get("password")?.toString();
-	const supabase = await createClient();
-	const origin = (await headers()).get("origin");
+  const email = formData.get("email")?.toString();
+  const password = formData.get("password")?.toString();
+  const firstName = formData.get("first_name")?.toString();
+  const lastName = formData.get("last_name")?.toString();
+  const phoneNo = formData.get("phone_no")?.toString();
+  const university = formData.get("university")?.toString();
+  const startDate = formData.get("start_date")?.toString();
+  const endDate = formData.get("end_date")?.toString();
+  const hoursToRender = formData.get("hours_to_render")?.toString();
+  const deptId = formData.get("dept_id")?.toString();
+  const status = formData.get("status")?.toString();
 
-	if (!email || !password || !displayName) {
-		return encodedRedirect("error", "/sign-up", "All fields are required");
-	}
+  const supabase = await createClient();
+  const origin = (await headers()).get("origin");
 
-	// Step 1: Sign up the user
-	const { data, error } = await supabase.auth.signUp({
-		email,
-		password,
-		options: {
-			emailRedirectTo: `${origin}/auth/callback`,
-			data: { displayName }, // Store the display name in user metadata
-		},
-	});
+  // Validate required fields
+  if (
+    !email ||
+    !password ||
+    !firstName ||
+    !lastName ||
+    !phoneNo ||
+    !university ||
+    !startDate ||
+    !endDate ||
+    !hoursToRender ||
+    !deptId ||
+    !status
+  ) {
+    return encodedRedirect("error", "/sign-up", "All fields are required");
+  }
 
-	if (error) {
-		console.error(error.code + " " + error.message);
-		return encodedRedirect("error", "/sign-up", error.message);
-	}
+  // Step 1: Sign up the user with Supabase Auth
+  const fullName = `${firstName} ${lastName}`;
+  const createdAt = new Date().toISOString();
 
-	const user = data.user;
-	if (!user) {
-		return encodedRedirect("error", "/sign-up", "User not found after signup");
-	}
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${origin}/auth/callback`,
+      data: {
+        full_name: fullName,
+        created_at: createdAt,
+      },
+    },
+  });
 
-	// Step 2: Insert additional user info into `users` table
-	const { error: insertError } = await supabase.from("users").insert([
-		{
-			id: user.id, // Link to auth.users.id
-			full_name: displayName,
-			email: user.email,
-			created_at: new Date().toISOString(),
-		},
-	]);
+  if (error) {
+    console.error(error.code + " " + error.message);
+    return encodedRedirect("error", "/sign-up", error.message);
+  }
 
-	if (insertError) {
-		console.error("Database Error:", insertError);
-		return encodedRedirect(
-			"error",
-			"/sign-up",
-			"User created, but profile saving failed."
-		);
-	}
+  const user = data.user;
+  if (!user) {
+    return encodedRedirect("error", "/sign-up", "User not found after signup");
+  }
 
-	return encodedRedirect(
-		"success",
-		"/sign-up",
-		"Thanks for signing up! Please check your email for a verification link."
-	);
+  console.log("User ID:", user.id); // Debugging to check UUID format
+
+  // Step 2: Insert additional user info into `users` table
+  const { error: userError } = await supabase.from("users").insert([
+    {
+      id: user.id,
+      full_name: fullName,
+      email: user.email,
+      created_at: createdAt,
+      role: "trainee",
+    },
+  ]);
+
+  if (userError) {
+    console.error("Database Error (users):", userError);
+    return encodedRedirect(
+      "error",
+      "/sign-up",
+      "User created, but profile saving failed."
+    );
+  }
+
+  // Step 3: Insert intern-specific info into `interns` table
+  const { error: internError } = await supabase.from("interns").insert([
+    {
+      id: user.id, // UUID from auth
+      first_name: firstName,
+      last_name: lastName,
+      phone_no: isNaN(parseFloat(phoneNo)) ? null : parseFloat(phoneNo), // Convert to numeric
+      university,
+      start_date: startDate.split("T")[0], // Format YYYY-MM-DD
+      end_date: endDate.split("T")[0], // Format YYYY-MM-DD
+      hours_to_render: isNaN(parseInt(hoursToRender, 10)) ? null : parseInt(hoursToRender, 10),
+      dept_id: isNaN(parseInt(deptId, 10)) ? null : parseInt(deptId, 10),
+      status,
+    },
+  ]);
+  
+  if (internError) {
+    console.error("Database Error (interns):", JSON.stringify(internError, null, 2));
+    return encodedRedirect(
+      "error",
+      "/sign-up",
+      `User created, but intern details saving failed. Error: ${internError.message}`
+    );
+  }
+
+  return encodedRedirect(
+    "success",
+    "/sign-up",
+    "Thanks for signing up! Please check your email for a verification link."
+  );
 };
+
+
 export const signInAction = async (formData: FormData) => {
 	const email = formData.get("email") as string;
 	const password = formData.get("password") as string;
