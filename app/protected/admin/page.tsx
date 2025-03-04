@@ -29,7 +29,7 @@ export default async function ProtectedPage() {
 					</div>
 				</div> */}
 				<div className="flex flex-col gap-2 items-start">
-					<h2 className="font-bold text-2xl mb-4">TRAINEE PAGE</h2>
+					<h2 className="font-bold text-2xl mb-4">ADMIN PAGE</h2>
 				</div>
 			</div>
 		</SidebarProvider>

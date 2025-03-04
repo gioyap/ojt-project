@@ -5,11 +5,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { SmtpMessage } from "../smtp-message";
+import { createClient } from "@/utils/supabase/server";
 
 export default async function Signup(props: {
   searchParams: Promise<Message>;
 }) {
   const searchParams = await props.searchParams;
+  const supabase = await createClient(); // Await the createClient function
+
+  // Fetch departments from the department table
+  const { data: departments, error } = await supabase
+    .from("department")
+    .select("dept_id, dept_name");
+
+  if (error) {
+    console.error("Error fetching departments:", error);
+    return (
+      <div className="w-full flex-1 flex items-center h-screen sm:max-w-md justify-center gap-2 p-4">
+        <FormMessage message={{ message: "Failed to load departments." }} />
+      </div>
+    );
+  }
+
   if ("message" in searchParams) {
     return (
       <div className="w-full flex-1 flex items-center h-screen sm:max-w-md justify-center gap-2 p-4">
@@ -89,19 +106,26 @@ export default async function Signup(props: {
             required
           />
 
-          {/* Department ID Field */}
-          <Label htmlFor="dept_id">Department ID</Label>
-          <Input
+          {/* Department Dropdown */}
+          <Label htmlFor="dept_id">Department</Label>
+          <select
+            title="department"
             id="dept_id"
             name="dept_id"
-            type="number"
-            placeholder="1"
+            className="p-2 border rounded-md"
             required
-          />
+          >
+            <option value="">Select a department</option>
+            {departments?.map((dept) => (
+              <option key={dept.dept_id} value={dept.dept_id}>
+                {dept.dept_name}
+              </option>
+            ))}
+          </select>
 
-          {/* Status Field */}
+          {/* Status Field
           <Label htmlFor="status">Status</Label>
-          <Input id="status" name="status" placeholder="Active" required />
+          <Input id="status" name="status" placeholder="Active" required /> */}
 
           {/* Submit Button */}
           <SubmitButton formAction={signUpAction} pendingText="Signing up...">
