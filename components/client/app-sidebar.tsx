@@ -1,5 +1,6 @@
 "use client";
 
+import HeaderAuth from "../header-auth";
 import { useEffect, useState } from "react";
 import { Calendar, Home, Inbox, Search, Settings } from "lucide-react";
 import {
@@ -12,6 +13,7 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import Header from "../hero";
 
 interface User {
 	name: string;
