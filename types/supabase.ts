@@ -41,7 +41,7 @@ export type Database = {
           days_late: number | null
           days_present: number | null
           remaining_hours: number | null
-          summary_id: string
+          summary_id: number
           trainee_id: string | null
         }
         Insert: {
@@ -50,7 +50,7 @@ export type Database = {
           days_late?: number | null
           days_present?: number | null
           remaining_hours?: number | null
-          summary_id?: string
+          summary_id?: number
           trainee_id?: string | null
         }
         Update: {
@@ -59,7 +59,7 @@ export type Database = {
           days_late?: number | null
           days_present?: number | null
           remaining_hours?: number | null
-          summary_id?: string
+          summary_id?: number
           trainee_id?: string | null
         }
         Relationships: [
@@ -68,142 +68,104 @@ export type Database = {
             columns: ["trainee_id"]
             isOneToOne: false
             referencedRelation: "interns"
-            referencedColumns: ["trainee_id"]
+            referencedColumns: ["id"]
           },
         ]
       }
-      departments: {
+      department: {
         Row: {
-          dept_id: string
-          dept_name: string
+          dept_id: number
+          dept_name: string | null
         }
         Insert: {
-          dept_id?: string
-          dept_name: string
+          dept_id?: number
+          dept_name?: string | null
         }
         Update: {
-          dept_id?: string
-          dept_name?: string
+          dept_id?: number
+          dept_name?: string | null
         }
         Relationships: []
       }
       interns: {
         Row: {
-          dept_id: string | null
+          dept_id: number | null
           end_date: string | null
-          first_name: string
+          first_name: string | null
           hours_to_render: number | null
-          last_name: string
-          phone_no: string | null
+          id: string
+          last_name: string | null
+          phone_no: number | null
           start_date: string | null
           status: string | null
-          sup_id: string | null
-          trainee_id: string
           university: string | null
-          username: string
         }
         Insert: {
-          dept_id?: string | null
+          dept_id?: number | null
           end_date?: string | null
-          first_name: string
+          first_name?: string | null
           hours_to_render?: number | null
-          last_name: string
-          phone_no?: string | null
+          id: string
+          last_name?: string | null
+          phone_no?: number | null
           start_date?: string | null
           status?: string | null
-          sup_id?: string | null
-          trainee_id?: string
           university?: string | null
-          username: string
         }
         Update: {
-          dept_id?: string | null
+          dept_id?: number | null
           end_date?: string | null
-          first_name?: string
+          first_name?: string | null
           hours_to_render?: number | null
-          last_name?: string
-          phone_no?: string | null
+          id?: string
+          last_name?: string | null
+          phone_no?: number | null
           start_date?: string | null
           status?: string | null
-          sup_id?: string | null
-          trainee_id?: string
           university?: string | null
-          username?: string
         }
         Relationships: [
           {
             foreignKeyName: "interns_dept_id_fkey"
             columns: ["dept_id"]
             isOneToOne: false
-            referencedRelation: "departments"
+            referencedRelation: "department"
             referencedColumns: ["dept_id"]
           },
           {
-            foreignKeyName: "interns_sup_id_fkey"
-            columns: ["sup_id"]
-            isOneToOne: false
-            referencedRelation: "supervisors"
-            referencedColumns: ["sup_id"]
-          },
-        ]
-      }
-      supervisors: {
-        Row: {
-          dept_id: string | null
-          first_name: string
-          last_name: string
-          sup_id: string
-          username: string
-        }
-        Insert: {
-          dept_id?: string | null
-          first_name: string
-          last_name: string
-          sup_id?: string
-          username: string
-        }
-        Update: {
-          dept_id?: string | null
-          first_name?: string
-          last_name?: string
-          sup_id?: string
-          username?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "supervisors_dept_id_fkey"
-            columns: ["dept_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["dept_id"]
+            foreignKeyName: "interns_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
         ]
       }
       timelogs: {
         Row: {
-          date: string
+          date: string | null
           status_logs: string | null
-          time_id: string
-          time_in: string
-          time_out: string
+          time_id: number
+          time_in: string | null
+          time_out: string | null
           total_dayhours: number | null
           trainee_id: string | null
         }
         Insert: {
-          date: string
+          date?: string | null
           status_logs?: string | null
-          time_id?: string
-          time_in: string
-          time_out: string
+          time_id?: number
+          time_in?: string | null
+          time_out?: string | null
           total_dayhours?: number | null
           trainee_id?: string | null
         }
         Update: {
-          date?: string
+          date?: string | null
           status_logs?: string | null
-          time_id?: string
-          time_in?: string
-          time_out?: string
+          time_id?: number
+          time_in?: string | null
+          time_out?: string | null
           total_dayhours?: number | null
           trainee_id?: string | null
         }
@@ -213,28 +175,31 @@ export type Database = {
             columns: ["trainee_id"]
             isOneToOne: false
             referencedRelation: "interns"
-            referencedColumns: ["trainee_id"]
+            referencedColumns: ["id"]
           },
         ]
       }
       users: {
         Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
           id: string
-          name: string | null
-          role: string
-          username: string
+          role: string | null
         }
         Insert: {
-          id: string
-          name?: string | null
-          role: string
-          username: string
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          role?: string | null
         }
         Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
           id?: string
-          name?: string | null
-          role?: string
-          username?: string
+          role?: string | null
         }
         Relationships: []
       }

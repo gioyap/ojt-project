@@ -4,6 +4,7 @@ import { encodedRedirect } from "@/utils/utils";
 import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { Message } from "@/components/form-message";
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
@@ -32,8 +33,7 @@ export const signUpAction = async (formData: FormData) => {
     !startDate ||
     !endDate ||
     !hoursToRender ||
-    !deptId ||
-    !status
+    !deptId
   ) {
     return encodedRedirect("error", "/sign-up", "All fields are required");
   }
@@ -98,7 +98,7 @@ export const signUpAction = async (formData: FormData) => {
       end_date: endDate.split("T")[0], // Format YYYY-MM-DD
       hours_to_render: isNaN(parseInt(hoursToRender, 10)) ? null : parseInt(hoursToRender, 10),
       dept_id: isNaN(parseInt(deptId, 10)) ? null : parseInt(deptId, 10),
-      status,
+      status: "Active",
     },
   ]);
   
@@ -118,23 +118,56 @@ export const signUpAction = async (formData: FormData) => {
   );
 };
 
+export const signInAction = async (
+  state: Message, // State parameter
+  formData: FormData // FormData parameter
+): Promise<Message> => {
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const formRole = formData.get("role") as string; // Role from the form
+  const supabase = await createClient();
 
-export const signInAction = async (formData: FormData) => {
-	const email = formData.get("email") as string;
-	const password = formData.get("password") as string;
-	const supabase = await createClient();
+  // Step 1: Authenticate the user
+  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-	const { error } = await supabase.auth.signInWithPassword({
-		email,
-		password,
-	});
+  if (authError) {
+    return { message: authError.message }; // Return error message if authentication fails
+  }
 
-	if (error) {
-		return encodedRedirect("error", "/sign-in", error.message);
-	}
+  // Step 2: Fetch the user's role from the `users` table
+  const { data: userData, error: userError } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", authData.user?.id) // Match the authenticated user's ID
+    .single();
 
-	return redirect("/protected");
+  if (userError) {
+    return { message: "Failed to fetch user data." }; // Return error message if fetching user data fails
+  }
+
+  const userRole = userData?.role; // Role from the users table
+
+  // Step 3: Validate the user's role
+  if (userRole !== formRole) {
+    // Step 3a: Sign out the user if roles don't match
+    await supabase.auth.signOut();
+    return { message: "You do not have permission to access this page." }; // Return error message if roles don't match
+  }
+
+  // Step 4: Redirect based on the validated role
+  if (formRole === "admin") {
+    redirect("/protected/admin"); // Redirect to admin dashboard
+  } else if (formRole === "trainee") {
+    redirect("/protected"); // Redirect to trainee dashboard
+  }
+
+  // Return the state to satisfy the type
+  return state;
 };
+
 
 export const forgotPasswordAction = async (formData: FormData) => {
 	const email = formData.get("email")?.toString();
@@ -210,5 +243,5 @@ export const resetPasswordAction = async (formData: FormData) => {
 export const signOutAction = async () => {
 	const supabase = await createClient();
 	await supabase.auth.signOut();
-	return redirect("/sign-in");
+	return redirect("/");
 };
