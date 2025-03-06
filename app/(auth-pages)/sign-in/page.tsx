@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense } from "react"; // Import Suspense
-import { useSearchParams } from "next/navigation"; // Import useSearchParams
+import { Suspense, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { FormMessage, Message } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useActionState } from "react";
 import { signInAction } from "@/app/actions";
+import { toast } from "react-toastify"; // Import toast
+import "react-toastify/dist/ReactToastify.css"; // Import Toastify styles
 
 export default function Login() {
 	return (
@@ -23,11 +25,26 @@ function LoginForm() {
 	const searchParams = useSearchParams();
 	const role = searchParams.get("role");
 
+  type Message = {
+    message: string;
+  };
+
 	const initialState: Message = { message: "" };
 	const [state, formAction, isPending] = useActionState<Message, FormData>(
 		signInAction,
 		initialState
 	);
+
+	// Show toast notifications when state.message changes
+	useEffect(() => {
+		if (state?.message) {
+			if (state.message.toLowerCase().includes("success")) {
+				toast.success(state.message);
+			} else {
+				toast.error(state.message);
+			}
+		}
+	}, [state.message]);
 
 	return (
 		<div className="min-h-screen flex items-center justify-center p-4">
@@ -72,7 +89,6 @@ function LoginForm() {
 							>
 								Sign in as Trainee
 							</SubmitButton>
-							<FormMessage message={state} />
 						</div>
 					</form>
 				)}
@@ -108,7 +124,6 @@ function LoginForm() {
 							>
 								Sign in as Admin
 							</SubmitButton>
-							<FormMessage message={state} />
 						</div>
 					</form>
 				)}

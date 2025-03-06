@@ -4,7 +4,6 @@ import { encodedRedirect } from "@/utils/utils";
 import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Message } from "@/components/form-message";
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
@@ -14,10 +13,14 @@ export const signUpAction = async (formData: FormData) => {
   const phoneNo = formData.get("phone_no")?.toString();
   const university = formData.get("university")?.toString();
   const startDate = formData.get("start_date")?.toString();
-  const endDate = formData.get("end_date")?.toString();
   const hoursToRender = formData.get("hours_to_render")?.toString();
   const deptId = formData.get("dept_id")?.toString();
-  const status = formData.get("status")?.toString();
+  const program = formData.get("program")?.toString();
+  const yearLevel = formData.get("year_level")?.toString();
+  const section = formData.get("section")?.toString();
+  const hostCompany = formData.get("host_company")?.toString();
+  const schedule = formData.get("schedule")?.toString();
+  const status = "Active";
 
   const supabase = await createClient();
   const origin = (await headers()).get("origin");
@@ -31,9 +34,13 @@ export const signUpAction = async (formData: FormData) => {
     !phoneNo ||
     !university ||
     !startDate ||
-    !endDate ||
     !hoursToRender ||
-    !deptId
+    !deptId ||
+    !program ||
+    !yearLevel ||
+    !section ||
+    !hostCompany ||
+    !schedule
   ) {
     return encodedRedirect("error", "/sign-up", "All fields are required");
   }
@@ -92,16 +99,20 @@ export const signUpAction = async (formData: FormData) => {
       id: user.id, // UUID from auth
       first_name: firstName,
       last_name: lastName,
-      phone_no: isNaN(parseFloat(phoneNo)) ? null : parseFloat(phoneNo), // Convert to numeric
+      phone_no: isNaN(parseFloat(phoneNo)) ? null : parseFloat(phoneNo),
       university,
       start_date: startDate.split("T")[0], // Format YYYY-MM-DD
-      end_date: endDate.split("T")[0], // Format YYYY-MM-DD
       hours_to_render: isNaN(parseInt(hoursToRender, 10)) ? null : parseInt(hoursToRender, 10),
       dept_id: isNaN(parseInt(deptId, 10)) ? null : parseInt(deptId, 10),
-      status: "Active",
+      program,
+      year_level: isNaN(parseInt(yearLevel, 10)) ? null : parseInt(yearLevel, 10),
+      section,
+      host_company: hostCompany,
+      schedule,
+      status,
     },
   ]);
-  
+
   if (internError) {
     console.error("Database Error (interns):", JSON.stringify(internError, null, 2));
     return encodedRedirect(
@@ -118,13 +129,19 @@ export const signUpAction = async (formData: FormData) => {
   );
 };
 
+
+export type Message = {
+  message: string;
+};
+
 export const signInAction = async (
-  state: Message, // State parameter
-  formData: FormData // FormData parameter
+  state: Message, 
+  formData: FormData
 ): Promise<Message> => {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
-  const formRole = formData.get("role") as string; // Role from the form
+  const formRole = formData.get("role") as string; 
+
   const supabase = await createClient();
 
   // Step 1: Authenticate the user
@@ -134,38 +151,37 @@ export const signInAction = async (
   });
 
   if (authError) {
-    return { message: authError.message }; // Return error message if authentication fails
+    return { message: authError.message }; // Return error message
   }
 
   // Step 2: Fetch the user's role from the `users` table
   const { data: userData, error: userError } = await supabase
     .from("users")
     .select("role")
-    .eq("id", authData.user?.id) // Match the authenticated user's ID
+    .eq("id", authData.user?.id)
     .single();
 
   if (userError) {
-    return { message: "Failed to fetch user data." }; // Return error message if fetching user data fails
+    return { message: "Failed to fetch user data." };
   }
 
-  const userRole = userData?.role; // Role from the users table
+  const userRole = userData?.role;
 
   // Step 3: Validate the user's role
   if (userRole !== formRole) {
-    // Step 3a: Sign out the user if roles don't match
     await supabase.auth.signOut();
-    return { message: "You do not have permission to access this page." }; // Return error message if roles don't match
+    return { message: "You do not have permission to access this page." };
   }
 
-  // Step 4: Redirect based on the validated role
+  // Step 4: Redirect based on role
   if (formRole === "admin") {
-    redirect("/protected/admin"); // Redirect to admin dashboard
+    redirect("/protected/admin");
   } else if (formRole === "trainee") {
-    redirect("/protected"); // Redirect to trainee dashboard
+    redirect("/protected");
   }
 
-  // Return the state to satisfy the type
-  return state;
+  // **Important**: Add a return statement after redirect to satisfy TypeScript
+  return { message: "Redirecting..." };
 };
 
 
@@ -245,3 +261,70 @@ export const signOutAction = async () => {
 	await supabase.auth.signOut();
 	return redirect("/");
 };
+
+export async function getIntern() { 
+  const supabase = await createClient();
+
+  // Get the authenticated user
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { error: "Unauthorized", user: null };
+  }
+
+  // Check if the user is an admin
+  const { data: userRole, error: roleError } = await supabase
+    .from("users") // Assuming you have a table for user roles
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (roleError || !userRole) {
+    return { error: "Error fetching user role", user: null };
+  }
+
+  if (userRole.role === "admin") {
+    return { message: "ADMIN", user: null };
+  }
+
+  // Define the expected type
+  type InternData = {
+    first_name: string;
+    last_name: string;
+    university: string;
+    department?: { dept_name: string }; // Ensure department is an object
+  };
+
+  // Fetch intern details with department name
+  const { data: intern, error: internError } = await supabase
+    .from("interns")
+    .select("first_name, last_name, university, department:dept_id(dept_name)")
+    .eq("id", user.id)
+    .single<InternData>(); // Cast result to InternData
+
+  if (internError) {
+    console.error("Supabase error:", internError);
+    return { error: "Error fetching intern", user: null };
+  }
+
+  if (!intern) {
+    console.warn("No intern found for user ID:", user.id);
+    return { error: "Intern not found", user: null };
+  }
+
+  return {
+    name: `${intern.first_name} ${intern.last_name}`,
+    university: intern.university,
+    department: intern.department?.dept_name || "Unknown",
+  };
+}
+
+
+
+
+
+
+

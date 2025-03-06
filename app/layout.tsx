@@ -1,5 +1,7 @@
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { ToastContainer } from "react-toastify"; // Import ToastContainer
+import "react-toastify/dist/ReactToastify.css"; // Import styles for Toastify
 import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -25,14 +27,15 @@ export default function RootLayout({
 	return (
 		<html lang="en" className={geistSans.className} suppressHydrationWarning>
 			<body className="bg-background text-foreground">
-				{" "}
-				{/* Changed bg-background to bg-white */}
 				<ThemeProvider
 					attribute="class"
 					defaultTheme="system"
 					enableSystem
 					disableTransitionOnChange
 				>
+					{/* Toast Notification Container */}
+					<ToastContainer position="top-right" autoClose={5000} hideProgressBar />
+
 					{/* HEADER PART */}
 					<main className="w-full">
 						{/* MAIN CONTENT */}
