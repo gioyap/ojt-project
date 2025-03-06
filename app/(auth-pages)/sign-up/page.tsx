@@ -41,7 +41,7 @@ export default async function Signup(props: {
         <h1 className="text-2xl font-medium">Sign up</h1>
         <p className="text-sm text text-foreground">
           Already have an account?{" "}
-          <Link className="text-primary font-medium underline" href="/sign-in">
+          <Link className="text-primary font-medium underline" href="/">
             Sign in
           </Link>
         </p>
@@ -92,10 +92,6 @@ export default async function Signup(props: {
           <Label htmlFor="start_date">Start Date</Label>
           <Input id="start_date" name="start_date" type="date" required />
 
-          {/* End Date Field */}
-          <Label htmlFor="end_date">End Date</Label>
-          <Input id="end_date" name="end_date" type="date" required />
-
           {/* Hours to Render Field */}
           <Label htmlFor="hours_to_render">Hours to Render</Label>
           <Input
@@ -121,6 +117,48 @@ export default async function Signup(props: {
                 {dept.dept_name}
               </option>
             ))}
+          </select>
+
+          {/* Program Field */}
+          <Label htmlFor="program">Program</Label>
+          <Input id="program" name="program" placeholder="Your Program" required />
+
+          {/* Year Level Field */}
+          <Label htmlFor="year_level">Year Level</Label>
+          <Input id="year_level" name="year_level" type="number" placeholder="4" required />
+
+          {/* Section Field */}
+          <Label htmlFor="section">Section</Label>
+          <Input id="section" name="section" placeholder="A" required />
+
+          {/* Host Company Field */}
+          <Label htmlFor="host_company">Host Company</Label>
+          <select
+            title="host_company"
+            id="host_company"
+            name="host_company"
+            className="p-2 border rounded-md"
+            required
+          >
+            <option value="">Select a host company</option>
+            <option value="Flawless">Flawless</option>
+            <option value="FINA">FINA</option>
+            <option value="Beauty and Butter">Beauty and Butter</option>
+            <option value="MTSI">MTSI</option>
+          </select>
+
+          {/* Schedule Field */}
+          <Label htmlFor="schedule">Schedule</Label>
+          <select
+            title="schedule"
+            id="schedule"
+            name="schedule"
+            className="p-2 border rounded-md"
+            required
+          >
+            <option value="">Select a schedule</option>
+            <option value="8AM - 5PM">8AM - 5PM</option>
+            <option value="9AM - 6PM">9AM - 6PM</option>
           </select>
 
           {/* Status Field
