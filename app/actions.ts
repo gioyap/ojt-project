@@ -262,32 +262,16 @@ export const signOutAction = async () => {
 	return redirect("/");
 };
 
-export async function getIntern() { 
+export async function getIntern() {
   const supabase = await createClient();
 
-  // Get the authenticated user
   const {
-    data: { user },
-    error: authError,
+      data: { user },
+      error: authError,
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    return { error: "Unauthorized", user: null };
-  }
-
-  // Check if the user is an admin
-  const { data: userRole, error: roleError } = await supabase
-    .from("users") // Assuming you have a table for user roles
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (roleError || !userRole) {
-    return { error: "Error fetching user role", user: null };
-  }
-
-  if (userRole.role === "admin") {
-    return { message: "ADMIN", user: null };
+      return { error: "Unauthorized", user: null };
   }
 
   // Define the expected type
@@ -298,30 +282,121 @@ export async function getIntern() {
     department?: { dept_name: string }; // Ensure department is an object
   };
 
-  // Fetch intern details with department name
-  const { data: intern, error: internError } = await supabase
-    .from("interns")
-    .select("first_name, last_name, university, department:dept_id(dept_name)")
-    .eq("id", user.id)
-    .single<InternData>(); // Cast result to InternData
+  const { data: userRole, error: roleError } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
 
-  if (internError) {
-    console.error("Supabase error:", internError);
-    return { error: "Error fetching intern", user: null };
+  if (roleError || !userRole) {
+      return { error: "Error fetching user role", user: null };
   }
 
-  if (!intern) {
-    console.warn("No intern found for user ID:", user.id);
-    return { error: "Intern not found", user: null };
+  if (userRole.role === "admin") {
+      const { data: admin, error: adminError } = await supabase
+          .from("supervisors")
+          .select("first_name, last_name, department:dept_id(dept_name)")
+          .eq("id", user.id)
+          .single<InternData>();
+
+      if (adminError) {
+          console.error("Error fetching admin details:", adminError);
+          return { error: "Error fetching admin details", user: null };
+      }
+
+      return {
+          message: "ADMIN",
+          name: `${admin.first_name} ${admin.last_name}`,
+          dept: admin.department?.dept_name || "Unknown", // Access directly as an object
+      };
+  }
+
+  const { data: intern, error: internError } = await supabase
+      .from("interns")
+      .select("first_name, last_name, university, department:dept_id(dept_name)")
+      .eq("id", user.id)
+      .single<InternData>();
+
+  if (internError) {
+      console.error("Error fetching intern:", internError);
+      return { error: "Error fetching intern", user: null };
   }
 
   return {
-    name: `${intern.first_name} ${intern.last_name}`,
-    university: intern.university,
-    department: intern.department?.dept_name || "Unknown",
+      name: `${intern.first_name} ${intern.last_name}`,
+      university: intern.university,
+      dept: intern.department?.dept_name || "Unknown", // Access directly as an object
   };
 }
 
+export async function updateComment(date: string, traineeId: string, comment: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("timelogs")
+    .update({ comments: comment })
+    .eq("date", date)
+    .eq("trainee_id", traineeId);
+
+  if (error) {
+    console.error("Error updating comment:", error);
+    throw new Error("Failed to update comment");
+  }
+
+  return { success: true };
+}
+
+export async function getTimelogsByTraineeId(traineeId: string) {
+  const supabase = await createClient();
+
+  const { data: timelogs, error } = await supabase
+      .from("timelogs")
+      .select("*")
+      .eq("trainee_id", traineeId)
+      .order("date", { ascending: true });
+
+  if (error) {
+      console.error("Error fetching timelogs:", error);
+      return { error: "Error fetching timelogs", timelogs: null };
+  }
+
+  return { timelogs };
+}
+
+export async function getAttendanceSummaryByTraineeId(traineeId: string) {
+  const supabase = await createClient();
+
+  const { data: summary, error } = await supabase
+    .from("attendancesummary")
+    .select("accomplished_hours, remaining_hours, days_present, days_late")
+    .eq("trainee_id", traineeId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching attendance summary:", error);
+    // Return default values instead of an error
+    return {
+      summary: {
+        accomplished_hours: 0, // Default value
+        remaining_hours: 0, // Default value
+      },
+      error: null,
+    };
+  }
+
+  // If no data is found, return default values
+  if (!summary) {
+    return {
+      summary: {
+        accomplished_hours: 0, // Default value
+        remaining_hours: 0, // Default value
+      },
+      error: null,
+    };
+  }
+
+  return { summary, error: null };
+}
 
 
 

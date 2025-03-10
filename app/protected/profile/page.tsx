@@ -46,7 +46,7 @@ export default async function ProfilePage() {
       <SidebarTrigger className="fixed top-4 left-[260px]" />
       
       <div className="flex-1 w-full flex flex-col gap-12 max-w-5xl p-5">
-        <h2 className="font-bold text-2xl mb-4">PROFILE PAGE</h2>
+        <h2 className="font-bold text-3xl mb-4">PROFILE PAGE</h2>
         <ProfileForm intern={intern} deptName={intern.department.dept_name} />
       </div>
     </SidebarProvider>

@@ -1,4 +1,6 @@
 import HeaderAuth from "@/components/header-auth";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default async function Layout({
 	children,

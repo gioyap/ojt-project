@@ -5,27 +5,18 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { createClient } from "@/utils/supabase/client";
 import { redirect } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  getTimelogsByTraineeId,
-  getAttendanceSummaryByTraineeId,
-} from "@/app/actions";
 
-export default function ProtectedPage() {
+export default function AdminTaskPage() {
   const supabase = createClient();
   const [user, setUser] = useState<any>(null);
   const [interns, setInterns] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
-  const [selectedDepartmentId, setSelectedDepartmentId] =
-    useState<string>("all");
-  const [selectedTraineeId, setSelectedTraineeId] = useState<string | null>(
-    null
-  );
-  const [timelogs, setTimelogs] = useState<any[]>([]);
-  const [filteredTimelogs, setFilteredTimelogs] = useState<any[]>([]);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>("all");
+  const [selectedTraineeId, setSelectedTraineeId] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [filteredTasks, setFilteredTasks] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedTraineeDetails, setSelectedTraineeDetails] =
-    useState<any>(null);
-  const [attendanceSummary, setAttendanceSummary] = useState<any>(null);
+  const [selectedTraineeDetails, setSelectedTraineeDetails] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [filterType, setFilterType] = useState<"week" | "month" | "all">("all");
   const [selectedMonth, setSelectedMonth] = useState<string>("");
@@ -34,8 +25,7 @@ export default function ProtectedPage() {
 
   useEffect(() => {
     async function fetchData() {
-      const { data: userData, error: userError } =
-        await supabase.auth.getUser();
+      const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData.user) {
         redirect("/sign-in");
       }
@@ -49,7 +39,6 @@ export default function ProtectedPage() {
         console.error("Error fetching interns:", internsError);
         return;
       }
-      console.log("Fetched interns:", internsData);
       setInterns(internsData || []);
 
       const { data: departmentsData, error: departmentsError } = await supabase
@@ -60,7 +49,6 @@ export default function ProtectedPage() {
         console.error("Error fetching departments:", departmentsError);
         return;
       }
-      console.log("Fetched departments:", departmentsData);
       setDepartments(departmentsData || []);
     }
 
@@ -68,23 +56,23 @@ export default function ProtectedPage() {
   }, [supabase]);
 
   const handleDepartmentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newDeptId = e.target.value;
-    setSelectedDepartmentId(newDeptId);
-    console.log("Selected department ID:", newDeptId);
+    setSelectedDepartmentId(e.target.value);
   };
 
   const filteredInterns =
     selectedDepartmentId === "all"
       ? interns
-      : interns.filter(
-          (intern) => String(intern.dept_id) === String(selectedDepartmentId)
-        );
+      : interns.filter((intern) => String(intern.dept_id) === String(selectedDepartmentId));
 
   const handleRowClick = async (traineeId: string) => {
-    const { timelogs, error: timelogsError } =
-      await getTimelogsByTraineeId(traineeId);
-    if (timelogsError || !timelogs) {
-      console.error("Error fetching timelogs:", timelogsError);
+    const { data: tasksData, error: tasksError } = await supabase
+      .from("timelogs") // Assuming tasks are stored in timelogs table
+      .select("date, comments")
+      .eq("trainee_id", traineeId)
+      .order("date", { ascending: true });
+
+    if (tasksError || !tasksData) {
+      console.error("Error fetching tasks:", tasksError);
       return;
     }
 
@@ -94,18 +82,10 @@ export default function ProtectedPage() {
       return;
     }
 
-    const { summary, error: summaryError } =
-      await getAttendanceSummaryByTraineeId(traineeId);
-    if (summaryError) {
-      console.error("Error fetching attendance summary:", summaryError);
-      return;
-    }
-
     setSelectedTraineeId(traineeId);
     setSelectedTraineeDetails(selectedTrainee);
-    setAttendanceSummary(summary);
-    setTimelogs(timelogs);
-    setFilteredTimelogs(timelogs);
+    setTasks(tasksData);
+    setFilteredTasks(tasksData);
     setIsModalOpen(true);
     setCurrentPage(1);
     setFilterType("all");
@@ -116,28 +96,27 @@ export default function ProtectedPage() {
     setIsModalOpen(false);
     setSelectedTraineeId(null);
     setSelectedTraineeDetails(null);
-    setAttendanceSummary(null);
-    setTimelogs([]);
-    setFilteredTimelogs([]);
+    setTasks([]);
+    setFilteredTasks([]);
     setCurrentPage(1);
     setFilterType("all");
     setSelectedMonth("");
   };
 
   const getMonthOptions = () => {
-    if (!selectedTraineeDetails?.start_date || timelogs.length === 0) return [];
+    if (!selectedTraineeDetails?.start_date || tasks.length === 0) return [];
     const startDate = new Date(selectedTraineeDetails.start_date);
     const today = new Date();
     const monthSet = new Set<string>();
 
-    timelogs.forEach((log) => {
-      const logDate = new Date(log.date);
-      if (logDate >= startDate && logDate <= today) {
-        const monthYear = logDate.toLocaleString("default", {
+    tasks.forEach((task) => {
+      const taskDate = new Date(task.date);
+      if (taskDate >= startDate && taskDate <= today) {
+        const monthYear = taskDate.toLocaleString("default", {
           month: "long",
           year: "numeric",
         });
-        const value = `${logDate.getFullYear()}-${logDate.getMonth()}`;
+        const value = `${taskDate.getFullYear()}-${taskDate.getMonth()}`;
         monthSet.add(JSON.stringify({ value, label: monthYear }));
       }
     });
@@ -151,15 +130,12 @@ export default function ProtectedPage() {
       });
   };
 
-  const filterTimelogs = (
-    type: "week" | "month" | "all",
-    monthValue?: string
-  ) => {
+  const filterTasks = (type: "week" | "month" | "all", monthValue?: string) => {
     const startDate = new Date(selectedTraineeDetails?.start_date);
     const today = new Date();
 
     if (type === "all") {
-      setFilteredTimelogs(timelogs);
+      setFilteredTasks(tasks);
     } else if (type === "week") {
       const startOfWeek = new Date(today);
       startOfWeek.setDate(today.getDate() - today.getDay());
@@ -167,30 +143,22 @@ export default function ProtectedPage() {
 
       const endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(startOfWeek.getDate() + 6);
-      endOfWeek.setHours(23, 59, 59, 999);
 
-      const filtered = timelogs.filter((log) => {
-        const logDate = new Date(log.date);
-        return (
-          logDate >= startDate && logDate >= startOfWeek && logDate <= endOfWeek
-        );
+      const filtered = tasks.filter((task) => {
+        const taskDate = new Date(task.date);
+        return taskDate >= startDate && taskDate >= startOfWeek && taskDate <= endOfWeek;
       });
-      setFilteredTimelogs(filtered);
+      setFilteredTasks(filtered);
     } else if (type === "month" && monthValue) {
       const [year, month] = monthValue.split("-").map(Number);
       const startOfMonth = new Date(year, month, 1);
       const endOfMonth = new Date(year, month + 1, 0);
-      endOfMonth.setHours(23, 59, 59, 999);
 
-      const filtered = timelogs.filter((log) => {
-        const logDate = new Date(log.date);
-        return (
-          logDate >= startDate &&
-          logDate >= startOfMonth &&
-          logDate <= endOfMonth
-        );
+      const filtered = tasks.filter((task) => {
+        const taskDate = new Date(task.date);
+        return taskDate >= startDate && taskDate >= startOfMonth && taskDate <= endOfMonth;
       });
-      setFilteredTimelogs(filtered);
+      setFilteredTasks(filtered);
     }
     setCurrentPage(1);
     setFilterType(type);
@@ -200,29 +168,19 @@ export default function ProtectedPage() {
     const monthValue = e.target.value;
     setSelectedMonth(monthValue);
     if (monthValue) {
-      filterTimelogs("month", monthValue);
+      filterTasks("month", monthValue);
     }
   };
 
-  const totalPages = Math.ceil(filteredTimelogs.length / ROWS_PER_PAGE);
+  const totalPages = Math.ceil(filteredTasks.length / ROWS_PER_PAGE);
   const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
   const endIndex = startIndex + ROWS_PER_PAGE;
-  const paginatedTimelogs = filteredTimelogs.slice(startIndex, endIndex);
+  const paginatedTasks = filteredTasks.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
-  };
-
-  // Function to determine remaining hours display
-  const getRemainingHoursDisplay = () => {
-    const remainingHours =
-      attendanceSummary?.remaining_hours !== undefined
-        ? attendanceSummary.remaining_hours
-        : selectedTraineeDetails?.hours_to_render || 0;
-
-    return remainingHours <= 0 ? "Completed" : remainingHours;
   };
 
   return (
@@ -231,7 +189,7 @@ export default function ProtectedPage() {
       <SidebarTrigger className="fixed top-4 left-[260px]" />
       <div className="flex-1 w-full flex flex-col gap-12 max-w-5xl p-5">
         <div className="flex justify-between items-center">
-          <h2 className="font-bold text-2xl mb-4">LIST OF INTERNS TIME LOGS</h2>
+          <h2 className="font-bold text-2xl mb-4">LIST OF INTERNS TASK</h2>
           <select
             title="Department"
             value={selectedDepartmentId}
@@ -282,21 +240,13 @@ export default function ProtectedPage() {
                     onClick={() => handleRowClick(intern.id)}
                     className="hover:bg-gray-50 cursor-pointer"
                   >
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {intern.first_name}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {intern.last_name}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {intern.university}
-                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{intern.first_name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{intern.last_name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{intern.university}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">
                       {intern.department?.dept_name || "N/A"}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {intern.status}
-                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{intern.status}</td>
                   </tr>
                 ))}
               </tbody>
@@ -312,15 +262,10 @@ export default function ProtectedPage() {
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="text-2xl font-semibold text-gray-800">
-                    {selectedTraineeDetails?.first_name}{" "}
-                    {selectedTraineeDetails?.last_name}
+                    {selectedTraineeDetails?.first_name} {selectedTraineeDetails?.last_name}
                   </h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {selectedTraineeDetails?.university}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {selectedTraineeDetails?.host_company}
-                  </p>
+                  <p className="text-sm text-gray-600 mt-1">{selectedTraineeDetails?.university}</p>
+                  <p className="text-sm text-gray-600">{selectedTraineeDetails?.host_company}</p>
                 </div>
                 <button
                   onClick={closeModal}
@@ -345,53 +290,12 @@ export default function ProtectedPage() {
             </div>
 
             <div className="p-6">
-              {attendanceSummary && (
-                <div className="p-2 rounded-lg mb-6">
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="bg-blue-50 p-4 rounded-lg shadow-sm">
-                      <p className="text-xs text-gray-600 uppercase">
-                        Accomplished Hours
-                      </p>
-                      <p className="text-lg font-semibold text-blue-800">
-                        {attendanceSummary.accomplished_hours || "0"}
-                      </p>
-                    </div>
-                    <div className="bg-green-50 p-4 rounded-lg shadow-sm">
-                      <p className="text-xs text-gray-600 uppercase">
-                        Remaining Hours
-                      </p>
-                      <p className="text-lg font-semibold text-green-800">
-                        {getRemainingHoursDisplay()}
-                      </p>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-lg shadow-sm">
-                      <p className="text-xs text-gray-600 uppercase">
-                        Days Present
-                      </p>
-                      <p className="text-lg font-semibold text-purple-800">
-                        {attendanceSummary.days_present || "0"}
-                      </p>
-                    </div>
-                    <div className="bg-red-50 p-4 rounded-lg shadow-sm">
-                      <p className="text-xs text-gray-600 uppercase">
-                        Days Late
-                      </p>
-                      <p className="text-lg font-semibold text-orange-500">
-                        {attendanceSummary.days_late || "0"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               <div>
                 <div className="flex justify-between items-center mb-4">
-                  <h4 className="text-lg font-semibold text-gray-800">
-                    Timelogs
-                  </h4>
+                  <h4 className="text-lg font-semibold text-gray-800">Task Accomplishments</h4>
                   <div className="flex gap-2 items-center">
                     <button
-                      onClick={() => filterTimelogs("week")}
+                      onClick={() => filterTasks("week")}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                         filterType === "week"
                           ? "bg-blue-600 text-white"
@@ -418,7 +322,7 @@ export default function ProtectedPage() {
                       ))}
                     </select>
                     <button
-                      onClick={() => filterTimelogs("all")}
+                      onClick={() => filterTasks("all")}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                         filterType === "all"
                           ? "bg-blue-600 text-white"
@@ -437,24 +341,15 @@ export default function ProtectedPage() {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                           Date
                         </th>
-                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
-                          Time In
-                        </th>
-                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
-                          Time Out
-                        </th>
-                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
-                          Hours
-                        </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                          Status
+                          Comments
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {paginatedTimelogs.map((log, index) => (
+                      {paginatedTasks.map((task, index) => (
                         <tr
-                          key={log.time_id}
+                          key={`${task.date}-${index}`} // Using date and index as key since there's no unique ID
                           className={`transition-colors ${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-100`}
                         >
                           <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
@@ -463,32 +358,9 @@ export default function ProtectedPage() {
                               year: "numeric",
                               month: "short",
                               day: "numeric",
-                            }).format(new Date(log.date))}
+                            }).format(new Date(task.date))}
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-900 text-center whitespace-nowrap">
-                            {new Date(
-                              `1970-01-01T${log.time_in}`
-                            ).toLocaleTimeString("en-US", {
-                              hour: "numeric",
-                              minute: "2-digit",
-                              hour12: true,
-                            })}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900 text-center whitespace-nowrap">
-                            {new Date(
-                              `1970-01-01T${log.time_out}`
-                            ).toLocaleTimeString("en-US", {
-                              hour: "numeric",
-                              minute: "2-digit",
-                              hour12: true,
-                            })}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900 text-center whitespace-nowrap">
-                            {log.total_dayhours} Hrs
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
-                            {log.status_logs}
-                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">{task.comments || "No comments"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -505,21 +377,19 @@ export default function ProtectedPage() {
                       Previous
                     </button>
                     <div className="flex gap-2">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                        (page) => (
-                          <button
-                            key={page}
-                            onClick={() => handlePageChange(page)}
-                            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                              currentPage === page
-                                ? "bg-blue-600 text-white"
-                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        )
-                      )}
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                            currentPage === page
+                              ? "bg-blue-600 text-white"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
                     </div>
                     <button
                       onClick={() => handlePageChange(currentPage + 1)}

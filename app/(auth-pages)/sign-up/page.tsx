@@ -120,7 +120,7 @@ export default async function Signup(props: {
           </select>
 
           {/* Program Field */}
-          <Label htmlFor="program">Program</Label>
+          <Label htmlFor="program">Program/Course</Label>
           <Input id="program" name="program" placeholder="Your Program" required />
 
           {/* Year Level Field */}
