@@ -16,19 +16,12 @@ type Intern = {
 export default async function ProfilePage() {
   const supabase = await createClient();
 
-  // Get the current user's session
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login"); // Redirect to login if not authenticated
+    redirect("/login");
   }
 
-  interface ProfileFormProps {
-    intern: Intern;
-    deptName: string;
-  }
-
-  // Fetch intern data including department name
   const { data: intern, error } = await supabase
     .from("interns")
     .select("*, department(dept_name)")
@@ -37,17 +30,27 @@ export default async function ProfilePage() {
 
   if (error || !intern) {
     console.error("Error fetching intern data:", error);
-    return <div className="p-5 text-red-500">Error loading profile data. Please try again later.</div>;
+    return (
+      <SidebarProvider>
+        <AppSidebar />
+        <div className="flex-1 w-full flex justify-center items-start min-h-screen bg-gradient-to-br from-blue-900 to-gray-900 p-8">
+          <div className="text-red-500 text-lg">Error loading profile data. Please try again later.</div>
+        </div>
+      </SidebarProvider>
+    );
   }
 
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarTrigger className="fixed top-4 left-[260px]" />
-      
-      <div className="flex-1 w-full flex flex-col gap-12 max-w-5xl p-5">
-        <h2 className="font-bold text-3xl mb-4">PROFILE PAGE</h2>
-        <ProfileForm intern={intern} deptName={intern.department.dept_name} />
+      <SidebarTrigger className="fixed top-4 left-[260px] text-white p-2 shadow-lg hover:from-blue-800 hover:to-purple-700 transition-all" />
+      <div className="flex-1 w-full flex justify-center items-start min-h-screen p-8">
+        <div className="flex flex-col gap-12 w-full max-w-5xl items-center">
+          <h2 className="font-extrabold text-3xl text-white tracking-wide text-center">
+            PROFILE PAGE
+          </h2>
+          <ProfileForm intern={intern} deptName={intern.department.dept_name} />
+        </div>
       </div>
     </SidebarProvider>
   );

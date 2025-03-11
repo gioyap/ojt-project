@@ -1,9 +1,9 @@
-"use client"; // Mark this as a Client Component
+"use client";
 
 import { useState } from "react";
-import { updateComment } from "@/app/actions"; // Import the server action from the app directory
-import { toast } from "react-toastify"; // Import toast
-import "react-toastify/dist/ReactToastify.css"; // Import Toastify styles
+import { updateComment } from "@/app/actions";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface CommentTextareaProps {
   initialComment?: string;
@@ -15,9 +15,8 @@ export function CommentTextarea({ initialComment, date, traineeId }: CommentText
   const [comment, setComment] = useState(initialComment || "");
   const [isLoading, setIsLoading] = useState(false);
   const [charCount, setCharCount] = useState(comment.length);
-  const maxChars = 500; // Set a character limit
+  const maxChars = 500;
 
-  // Format the date as "Monday, March 3, 2025"
   const formattedDate = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
     year: "numeric",
@@ -25,7 +24,6 @@ export function CommentTextarea({ initialComment, date, traineeId }: CommentText
     day: "numeric",
   }).format(new Date(date));
 
-  // Handle saving the comment
   const handleSaveComment = async () => {
     setIsLoading(true);
     try {
@@ -55,33 +53,32 @@ export function CommentTextarea({ initialComment, date, traineeId }: CommentText
     }
   };
 
-  // Update character count
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setComment(e.target.value);
     setCharCount(e.target.value.length);
-    e.target.style.height = "auto"; // Reset height
-    e.target.style.height = `${e.target.scrollHeight}px`; // Set new height
+    e.target.style.height = "auto";
+    e.target.style.height = `${e.target.scrollHeight}px`;
   };
 
   return (
-    <div className="w-full max-w-2xl bg-black-100 shadow-sm rounded-lg p-4 border border-gray-700">
-      <h3 className="font-semibold text-lg mb-2">{formattedDate}</h3>
+    <div className="w-full bg-white shadow-md rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-200">
+      <h3 className="font-semibold text-lg mb-3 text-gray-800">{formattedDate}</h3>
       <textarea
         value={comment}
         onChange={handleTextareaChange}
-        className="w-full p-2 border rounded resize-none overflow-hidden bg-black-500"
+        className="w-full p-3 border border-blue-300 rounded-lg resize-none overflow-hidden text-gray-800 bg-white focus:ring-2 focus:ring-purple-500 placeholder-gray-400"
         rows={4}
         placeholder="Add a comment..."
         maxLength={maxChars}
       />
-      <div className="flex justify-between items-center mt-2">
-        <div className="text-sm text-gray-500">
+      <div className="flex justify-between items-center mt-3">
+        <div className="text-sm text-gray-600">
           {charCount}/{maxChars} characters
         </div>
         <button
           onClick={handleSaveComment}
           disabled={isLoading}
-          className="px-4 py-2 bg-pink-900 text-white rounded hover:bg-pink-600 disabled:bg-blue-300"
+          className="px-4 py-2 bg-pink-600 text-white rounded-lg shadow-md hover:from-blue-800 hover:to-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
         >
           {isLoading ? "Saving..." : "Save"}
         </button>

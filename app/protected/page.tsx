@@ -4,6 +4,8 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { TimeLogForm } from "@/components/trainee/time-log-form";
 import { TimeLogsList } from "@/components/trainee/time-logs-list";
+import { AttendanceSummary } from "@/components/trainee/attendance-summary";
+import { getAttendanceSummaryByTraineeId } from "@/app/actions";
 
 export default async function ProtectedPage() {
   const supabase = await createClient();
@@ -16,25 +18,34 @@ export default async function ProtectedPage() {
     return redirect("/sign-in");
   }
 
-  const { data: timeLogs, error } = await supabase
+  // Fetch time logs
+  const { data: timeLogs, error: timeLogsError } = await supabase
     .from("timelogs")
     .select("*")
     .eq("trainee_id", user.id)
     .order("date", { ascending: false });
 
-  if (error) {
-    console.error("Error fetching time logs:", error);
+  if (timeLogsError) {
+    console.error("Error fetching time logs:", timeLogsError);
   }
+
+  // Fetch attendance summary
+  const { summary: attendanceSummary } = await getAttendanceSummaryByTraineeId(user.id);
 
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarTrigger className="fixed top-4 left-[260px]" />
-      <div className="flex-1 w-full flex flex-col gap-12 max-w-5xl p-5">
-        <div className="flex flex-col gap-2 items-start">
-          <h2 className="font-bold text-2xl mb-4">TRAINEE PAGE</h2>
-          <TimeLogForm traineeId={user.id} />
-          <TimeLogsList timeLogs={timeLogs || []} />
+      <SidebarTrigger className="fixed top-4 left-[260px] text-white p-2 shadow-lg" />
+      <div className="flex-1 w-full flex justify-center items-start min-h-screen p-8">
+        <div className="flex flex-col gap-12 w-full max-w-5xl">
+          <div className="flex flex-col gap-6 items-start">
+            <h2 className="font-extrabold text-3xl text-white tracking-wide">
+              INTERN DASHBOARD
+            </h2>
+            <TimeLogForm traineeId={user.id} />
+            <AttendanceSummary summary={attendanceSummary} />
+            <TimeLogsList timeLogs={timeLogs || []} />
+          </div>
         </div>
       </div>
     </SidebarProvider>

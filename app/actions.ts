@@ -366,30 +366,41 @@ export async function getTimelogsByTraineeId(traineeId: string) {
 export async function getAttendanceSummaryByTraineeId(traineeId: string) {
   const supabase = await createClient();
 
-  const { data: summary, error } = await supabase
+  const { data: summary, error: summaryError } = await supabase
     .from("attendancesummary")
     .select("accomplished_hours, remaining_hours, days_present, days_late")
     .eq("trainee_id", traineeId)
-    .single();
+    .maybeSingle(); // Use maybeSingle to handle no rows gracefully
 
-  if (error) {
-    console.error("Error fetching attendance summary:", error);
-    // Return default values instead of an error
+  if (summaryError || !summary) {
+    console.warn("No attendance summary found, fetching from interns table:", summaryError?.message || "No data");
+
+    // Fallback to interns table for remaining_hours
+    const { data: internData, error: internError } = await supabase
+      .from("interns")
+      .select("hours_to_render")
+      .eq("id", traineeId)
+      .single();
+
+    if (internError || !internData) {
+      console.error("Error fetching intern data:", internError);
+      return {
+        summary: {
+          accomplished_hours: 0,
+          remaining_hours: 0,
+          days_present: 0,
+          days_late: 0,
+        },
+        error: null,
+      };
+    }
+
     return {
       summary: {
-        accomplished_hours: 0, // Default value
-        remaining_hours: 0, // Default value
-      },
-      error: null,
-    };
-  }
-
-  // If no data is found, return default values
-  if (!summary) {
-    return {
-      summary: {
-        accomplished_hours: 0, // Default value
-        remaining_hours: 0, // Default value
+        accomplished_hours: 0,
+        remaining_hours: internData.hours_to_render || 0,
+        days_present: 0,
+        days_late: 0,
       },
       error: null,
     };
