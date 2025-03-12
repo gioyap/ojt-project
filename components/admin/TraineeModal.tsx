@@ -241,10 +241,10 @@ export const TraineeModal: React.FC<TraineeModalProps> = ({
                         {attendanceSummary.days_present || "0"}
                       </p>
                     </div>
-                    <div className="bg-red-50 p-4 rounded-lg shadow-sm">
-                      <p className="text-xs text-gray-600 uppercase">Days Late</p>
-                      <p className="text-lg font-semibold text-orange-500">
-                        {attendanceSummary.days_late || "0"}
+                    <div className="bg-red-100 p-4 rounded-lg shadow-sm">
+                      <p className="text-xs text-gray-600 uppercase">Days Absent</p>
+                      <p className="text-lg font-semibold text-red-500">
+                        {attendanceSummary.days_absent || "0"}
                       </p>
                     </div>
                   </div>

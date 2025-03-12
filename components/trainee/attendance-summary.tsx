@@ -4,7 +4,7 @@ interface SummaryData {
   accomplished_hours: number;
   remaining_hours: number;
   days_present: number;
-  days_late: number;
+  days_absent: number;
 }
 
 interface AttendanceSummaryProps {
@@ -18,19 +18,19 @@ export function AttendanceSummary({ summary }: AttendanceSummaryProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
         <div className="text-center">
           <p className="text-sm text-gray-600">Accomplished Hours</p>
-          <p className="text-lg font-semibold text-blue-600">{summary.accomplished_hours}</p>
+          <p className="text-2xl font-semibold text-blue-600">{summary.accomplished_hours}</p>
         </div>
         <div className="text-center">
           <p className="text-sm text-gray-600">Remaining Hours</p>
-          <p className="text-lg font-semibold text-blue-600">{summary.remaining_hours}</p>
+          <p className="text-2xl font-semibold text-blue-600">{summary.remaining_hours}</p>
         </div>
         <div className="text-center">
           <p className="text-sm text-gray-600">Days Present</p>
-          <p className="text-lg font-semibold text-green-600">{summary.days_present}</p>
+          <p className="text-2xl font-semibold text-green-600">{summary.days_present}</p>
         </div>
         <div className="text-center">
-          <p className="text-sm text-gray-600">Days Late</p>
-          <p className="text-lg font-semibold text-orange-500">{summary.days_late}</p>
+          <p className="text-sm text-gray-600">Days Absent</p>
+          <p className="text-2xl font-semibold text-red-500">{summary.days_absent}</p>
         </div>
       </div>
     </div>

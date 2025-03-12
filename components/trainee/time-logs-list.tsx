@@ -5,8 +5,8 @@ import { useState } from "react";
 interface TimeLog {
   time_id: number;
   date: string;
-  time_in: string;
-  time_out: string;
+  time_in: string | null;
+  time_out: string | null;
   total_dayhours: number;
   status_logs: string;
 }
@@ -19,20 +19,19 @@ export function TimeLogsList({ timeLogs }: { timeLogs: TimeLog[] }) {
     return <p className="text-gray-400 text-lg">No time logs found yet.</p>;
   }
 
-  const formatTime = (time: string) => {
+  const formatTime = (time: string | null) => {
+    if (!time) return "N/A";
     const [hours, minutes] = time.split(":").map(Number);
     const period = hours >= 12 ? "PM" : "AM";
     const formattedHours = hours % 12 || 12;
     return `${formattedHours}:${minutes.toString().padStart(2, "0")} ${period}`;
   };
 
-  // Calculate total pages and paginated logs
   const totalPages = Math.ceil(timeLogs.length / entriesPerPage);
   const startIndex = (currentPage - 1) * entriesPerPage;
   const endIndex = startIndex + entriesPerPage;
   const paginatedLogs = timeLogs.slice(startIndex, endIndex);
 
-  // Handle page navigation
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
@@ -58,20 +57,26 @@ export function TimeLogsList({ timeLogs }: { timeLogs: TimeLog[] }) {
                 })}
               </p>
               <p className="text-sm text-gray-600">
-                <span className="font-medium">In:</span> {formatTime(log.time_in)} |{" "}
-                <span className="font-medium">Out:</span> {formatTime(log.time_out)}
+                <span className="font-medium">In:</span>{" "}
+                {formatTime(log.time_in)} |{" "}
+                <span className="font-medium">Out:</span>{" "}
+                {formatTime(log.time_out)}
               </p>
             </div>
             <div className="flex items-center gap-6">
               <div className="text-center">
                 <p className="text-sm text-gray-600">Hours</p>
-                <p className="text-lg font-semibold text-blue-600">{log.total_dayhours}</p>
+                <p className="text-lg font-semibold text-blue-600">
+                  {log.total_dayhours}
+                </p>
               </div>
               <div className="text-center">
                 <p className="text-sm text-gray-600">Status</p>
                 <p
                   className={`text-lg font-semibold ${
-                    log.status_logs === "Present" ? "text-green-600" : "text-orange-500"
+                    log.status_logs === "Present"
+                      ? "text-green-600" // Green for "Present"
+                      : "text-red-600" // Red for "Absent"
                   }`}
                 >
                   {log.status_logs}
@@ -82,7 +87,6 @@ export function TimeLogsList({ timeLogs }: { timeLogs: TimeLog[] }) {
         ))}
       </div>
 
-      {/* Pagination Controls */}
       {totalPages > 1 && (
         <div className="mt-6 flex justify-between items-center">
           <button

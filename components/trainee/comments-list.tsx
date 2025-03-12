@@ -15,7 +15,7 @@ interface CommentsListProps {
 
 export default function CommentsList({ timeLogs, traineeId }: CommentsListProps) {
   const [currentPage, setCurrentPage] = useState(1);
-  const entriesPerPage = 3;
+  const entriesPerPage = 5;
 
   if (timeLogs.length === 0) {
     return <p className="text-gray-400 text-lg text-center">No comments found yet.</p>;
