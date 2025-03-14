@@ -165,7 +165,7 @@ export default function AdminTaskPage() {
                           className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
                             intern.status === "Active"
                               ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
+                              : "bg-green-300 text-green-800"
                           }`}
                         >
                           {intern.status}

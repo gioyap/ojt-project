@@ -130,9 +130,7 @@ export const signUpAction = async (formData: FormData) => {
 };
 
 
-export type Message = {
-  message: string;
-};
+// Removed duplicate Message type declaration
 
 export const signInAction = async (
   state: Message, 
@@ -183,6 +181,7 @@ export const signInAction = async (
   // **Important**: Add a return statement after redirect to satisfy TypeScript
   return { message: "Redirecting..." };
 };
+
 
 
 export const forgotPasswordAction = async (formData: FormData) => {
@@ -411,6 +410,103 @@ export async function getAttendanceSummaryByTraineeId(traineeId: string) {
   return { summary, error: null };
 }
 
+
+
+
+// New signUpAdminAction for admin signup
+export const signUpAdminAction = async (formData: FormData) => {
+  const email = formData.get("email")?.toString();
+  const password = formData.get("password")?.toString();
+  const firstName = formData.get("first_name")?.toString();
+  const lastName = formData.get("last_name")?.toString();
+  const deptId = formData.get("dept_id")?.toString();
+
+  const supabase = await createClient();
+  const origin = (await headers()).get("origin");
+
+  // Validate required fields
+  if (!email || !password || !firstName || !lastName || !deptId) {
+    return encodedRedirect("error", "/sign-up-admin", "All fields are required");
+  }
+
+  // Step 1: Sign up the user with Supabase Auth
+  const fullName = `${firstName} ${lastName}`;
+  const createdAt = new Date().toISOString();
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${origin}/auth/callback`,
+      data: {
+        full_name: fullName,
+        created_at: createdAt,
+      },
+    },
+  });
+
+  if (error) {
+    console.error(error.code + " " + error.message);
+    return encodedRedirect("error", "/sign-up-admin", error.message);
+  }
+
+  const user = data.user;
+  if (!user) {
+    return encodedRedirect("error", "/sign-up-admin", "User not found after signup");
+  }
+
+  console.log("User ID:", user.id); // Debugging to check UUID format
+
+  // Step 2: Insert additional user info into `users` table
+  const { error: userError } = await supabase.from("users").insert([
+    {
+      id: user.id,
+      full_name: fullName,
+      email: user.email,
+      created_at: createdAt,
+      role: "admin", // Set role to "supervisor" for admins
+    },
+  ]);
+
+  if (userError) {
+    console.error("Database Error (users):", userError);
+    return encodedRedirect(
+      "error",
+      "/sign-up-admin",
+      "User created, but profile saving failed."
+    );
+  }
+
+  // Step 3: Insert admin-specific info into `supervisors` table
+  const { error: supervisorError } = await supabase.from("supervisors").insert([
+    {
+      id: user.id, // UUID from auth
+      first_name: firstName,
+      last_name: lastName,
+      dept_id: parseInt(deptId, 10), // Convert to bigint
+    },
+  ]);
+
+  if (supervisorError) {
+    console.error("Database Error (supervisors):", JSON.stringify(supervisorError, null, 2));
+    return encodedRedirect(
+      "error",
+      "/sign-up-admin",
+      `User created, but supervisor details saving failed. Error: ${supervisorError.message}`
+    );
+  }
+
+  return encodedRedirect(
+    "success",
+    "/sign-up-admin",
+    "Thanks for signing up! Please check your email for a verification link."
+  );
+};
+
+// Existing signInAction remains unchanged
+export type Message = {
+  message: string;
+};
 
 
 

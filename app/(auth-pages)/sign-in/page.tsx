@@ -102,7 +102,7 @@ function LoginForm() {
 							Don't have an account?{" "}
 							<Link
 								className="text-blue-600 font-medium hover:underline"
-								href="/sign-up"
+								href="/sign-up-admin"
 							>
 								Sign up
 							</Link>
