@@ -98,6 +98,15 @@ function LoginForm() {
 						<h2 className="text-2xl font-bold text-gray-900 mb-6">
 							Admin Sign In
 						</h2>
+            <p className="text-sm text-gray-600 mb-8">
+							Don't have an account?{" "}
+							<Link
+								className="text-blue-600 font-medium hover:underline"
+								href="/sign-up-admin"
+							>
+								Sign up
+							</Link>
+						</p>
 						<div className="space-y-4">
 							<div>
 								<Label htmlFor="email">Email</Label>

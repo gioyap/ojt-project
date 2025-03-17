@@ -1,4 +1,4 @@
-import { signUpAction } from "@/app/actions";
+import { signUpAdminAction } from "@/app/actions"; // Updated import
 import { FormMessage, Message } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
@@ -7,11 +7,11 @@ import Link from "next/link";
 import { SmtpMessage } from "../smtp-message";
 import { createClient } from "@/utils/supabase/server";
 
-export default async function Signup(props: {
+export default async function SignupAdmin(props: {
   searchParams: Promise<Message>;
 }) {
   const searchParams = await props.searchParams;
-  const supabase = await createClient(); // Await the createClient function
+  const supabase = await createClient();
 
   // Fetch departments from the department table
   const { data: departments, error } = await supabase
@@ -38,7 +38,7 @@ export default async function Signup(props: {
   return (
     <>
       <form className="flex flex-col min-w-64 max-w-64 mx-auto">
-        <h1 className="text-2xl font-medium">Sign up</h1>
+        <h1 className="text-2xl font-medium">Admin Sign Up</h1>
         <p className="text-sm text text-foreground">
           Already have an account?{" "}
           <Link className="text-primary font-medium underline" href="/">
@@ -69,39 +69,6 @@ export default async function Signup(props: {
           <Label htmlFor="last_name">Last Name</Label>
           <Input id="last_name" name="last_name" placeholder="Doe" required />
 
-          {/* Phone Number Field */}
-          <Label htmlFor="phone_no">Phone Number</Label>
-          <Input
-            id="phone_no"
-            name="phone_no"
-            type="tel"
-            placeholder="1234567890"
-            required
-          />
-
-          {/* University Field */}
-          <Label htmlFor="university">University</Label>
-          <Input
-            id="university"
-            name="university"
-            placeholder="Your University"
-            required
-          />
-
-          {/* Start Date Field */}
-          <Label htmlFor="start_date">Start Date</Label>
-          <Input id="start_date" name="start_date" type="date" required />
-
-          {/* Hours to Render Field */}
-          <Label htmlFor="hours_to_render">Hours to Render</Label>
-          <Input
-            id="hours_to_render"
-            name="hours_to_render"
-            type="number"
-            placeholder="100"
-            required
-          />
-
           {/* Department Dropdown */}
           <Label htmlFor="dept_id">Department</Label>
           <select
@@ -119,54 +86,8 @@ export default async function Signup(props: {
             ))}
           </select>
 
-          {/* Program Field */}
-          <Label htmlFor="program">Program/Course</Label>
-          <Input id="program" name="program" placeholder="Your Program" required />
-
-          {/* Year Level Field */}
-          <Label htmlFor="year_level">Year Level</Label>
-          <Input id="year_level" name="year_level" type="number" placeholder="4" required />
-
-          {/* Section Field */}
-          <Label htmlFor="section">Section</Label>
-          <Input id="section" name="section" placeholder="A" required />
-
-          {/* Host Company Field */}
-          <Label htmlFor="host_company">Host Company</Label>
-          <select
-            title="host_company"
-            id="host_company"
-            name="host_company"
-            className="p-2 border rounded-md"
-            required
-          >
-            <option value="">Select a host company</option>
-            <option value="Flawless">Flawless</option>
-            <option value="FINA">FINA</option>
-            <option value="Beauty and Butter">Beauty and Butter</option>
-            <option value="MTSI">MTSI</option>
-          </select>
-
-          {/* Schedule Field */}
-          <Label htmlFor="schedule">Schedule</Label>
-          <select
-            title="schedule"
-            id="schedule"
-            name="schedule"
-            className="p-2 border rounded-md"
-            required
-          >
-            <option value="">Select a schedule</option>
-            <option value="8AM - 5PM">8AM - 5PM</option>
-            <option value="9AM - 6PM">9AM - 6PM</option>
-          </select>
-
-          {/* Status Field
-          <Label htmlFor="status">Status</Label>
-          <Input id="status" name="status" placeholder="Active" required /> */}
-
           {/* Submit Button */}
-          <SubmitButton formAction={signUpAction} pendingText="Signing up...">
+          <SubmitButton formAction={signUpAdminAction} pendingText="Signing up...">
             Sign up
           </SubmitButton>
 

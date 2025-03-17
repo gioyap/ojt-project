@@ -1,4 +1,4 @@
-// app/protected/admin
+// app/protected/admin-task
 "use client";
 
 import { AppSidebar } from "@/components/client/app-sidebar";
@@ -6,9 +6,9 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { createClient } from "@/utils/supabase/client";
 import { redirect } from "next/navigation";
 import { useEffect, useState } from "react";
-import { TraineeModal } from "@/components/admin/TraineeModal";
+import { TaskModal } from "@/components/admin/TaskModal";
 
-export default function ProtectedPage() {
+export default function AdminTaskPage() {
   const supabase = createClient();
   const [user, setUser] = useState<any>(null);
   const [interns, setInterns] = useState<any[]>([]);
@@ -93,7 +93,7 @@ export default function ProtectedPage() {
       <div className="flex-1 w-full flex flex-col gap-8 p-6">
         {/* Header Section */}
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-white">INTERNS TIME LOGS</h1>
+          <h1 className="text-3xl font-bold text-white">INTERNS TASK LOGS</h1>
           <div className="flex items-center gap-4">
             <select
               title="Department"
@@ -213,8 +213,8 @@ export default function ProtectedPage() {
         </div>
       </div>
 
-      {/* Trainee Modal */}
-      <TraineeModal
+      {/* Task Modal */}
+      <TaskModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         traineeId={selectedTraineeId || ""}

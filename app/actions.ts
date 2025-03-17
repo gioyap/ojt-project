@@ -130,9 +130,7 @@ export const signUpAction = async (formData: FormData) => {
 };
 
 
-export type Message = {
-  message: string;
-};
+// Removed duplicate Message type declaration
 
 export const signInAction = async (
   state: Message, 
@@ -183,6 +181,7 @@ export const signInAction = async (
   // **Important**: Add a return statement after redirect to satisfy TypeScript
   return { message: "Redirecting..." };
 };
+
 
 
 export const forgotPasswordAction = async (formData: FormData) => {
@@ -262,32 +261,16 @@ export const signOutAction = async () => {
 	return redirect("/");
 };
 
-export async function getIntern() { 
+export async function getIntern() {
   const supabase = await createClient();
 
-  // Get the authenticated user
   const {
-    data: { user },
-    error: authError,
+      data: { user },
+      error: authError,
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    return { error: "Unauthorized", user: null };
-  }
-
-  // Check if the user is an admin
-  const { data: userRole, error: roleError } = await supabase
-    .from("users") // Assuming you have a table for user roles
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (roleError || !userRole) {
-    return { error: "Error fetching user role", user: null };
-  }
-
-  if (userRole.role === "admin") {
-    return { message: "ADMIN", user: null };
+      return { error: "Unauthorized", user: null };
   }
 
   // Define the expected type
@@ -298,31 +281,232 @@ export async function getIntern() {
     department?: { dept_name: string }; // Ensure department is an object
   };
 
-  // Fetch intern details with department name
-  const { data: intern, error: internError } = await supabase
-    .from("interns")
-    .select("first_name, last_name, university, department:dept_id(dept_name)")
-    .eq("id", user.id)
-    .single<InternData>(); // Cast result to InternData
+  const { data: userRole, error: roleError } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
 
-  if (internError) {
-    console.error("Supabase error:", internError);
-    return { error: "Error fetching intern", user: null };
+  if (roleError || !userRole) {
+      return { error: "Error fetching user role", user: null };
   }
 
-  if (!intern) {
-    console.warn("No intern found for user ID:", user.id);
-    return { error: "Intern not found", user: null };
+  if (userRole.role === "admin") {
+      const { data: admin, error: adminError } = await supabase
+          .from("supervisors")
+          .select("first_name, last_name, department:dept_id(dept_name)")
+          .eq("id", user.id)
+          .single<InternData>();
+
+      if (adminError) {
+          console.error("Error fetching admin details:", adminError);
+          return { error: "Error fetching admin details", user: null };
+      }
+
+      return {
+          message: "ADMIN",
+          name: `${admin.first_name} ${admin.last_name}`,
+          dept: admin.department?.dept_name || "Unknown", // Access directly as an object
+      };
+  }
+
+  const { data: intern, error: internError } = await supabase
+      .from("interns")
+      .select("first_name, last_name, university, department:dept_id(dept_name)")
+      .eq("id", user.id)
+      .single<InternData>();
+
+  if (internError) {
+      console.error("Error fetching intern:", internError);
+      return { error: "Error fetching intern", user: null };
   }
 
   return {
-    name: `${intern.first_name} ${intern.last_name}`,
-    university: intern.university,
-    department: intern.department?.dept_name || "Unknown",
+      name: `${intern.first_name} ${intern.last_name}`,
+      university: intern.university,
+      dept: intern.department?.dept_name || "Unknown", // Access directly as an object
   };
 }
 
+export async function updateComment(date: string, traineeId: string, comment: string) {
+  const supabase = await createClient();
 
+  const { error } = await supabase
+    .from("timelogs")
+    .update({ comments: comment })
+    .eq("date", date)
+    .eq("trainee_id", traineeId);
+
+  if (error) {
+    console.error("Error updating comment:", error);
+    throw new Error("Failed to update comment");
+  }
+
+  return { success: true };
+}
+
+export async function getTimelogsByTraineeId(traineeId: string) {
+  const supabase = await createClient();
+
+  const { data: timelogs, error } = await supabase
+      .from("timelogs")
+      .select("*")
+      .eq("trainee_id", traineeId)
+      .order("date", { ascending: true });
+
+  if (error) {
+      console.error("Error fetching timelogs:", error);
+      return { error: "Error fetching timelogs", timelogs: null };
+  }
+
+  return { timelogs };
+}
+
+export async function getAttendanceSummaryByTraineeId(traineeId: string) {
+  const supabase = await createClient();
+
+  const { data: summary, error: summaryError } = await supabase
+    .from("attendancesummary")
+    .select("accomplished_hours, remaining_hours, days_present, days_late, days_absent")
+    .eq("trainee_id", traineeId)
+    .maybeSingle(); // Use maybeSingle to handle no rows gracefully
+
+  if (summaryError || !summary) {
+    console.warn("No attendance summary found, fetching from interns table:", summaryError?.message || "No data");
+
+    // Fallback to interns table for remaining_hours
+    const { data: internData, error: internError } = await supabase
+      .from("interns")
+      .select("hours_to_render")
+      .eq("id", traineeId)
+      .single();
+
+    if (internError || !internData) {
+      console.error("Error fetching intern data:", internError);
+      return {
+        summary: {
+          accomplished_hours: 0,
+          remaining_hours: 0,
+          days_present: 0,
+          days_late: 0,
+          days_absent: 0,
+        },
+        error: null,
+      };
+    }
+
+    return {
+      summary: {
+        accomplished_hours: 0,
+        remaining_hours: internData.hours_to_render || 0,
+        days_present: 0,
+        days_late: 0,
+        days_absent: 0,
+      },
+      error: null,
+    };
+  }
+
+  return { summary, error: null };
+}
+
+
+
+
+// New signUpAdminAction for admin signup
+export const signUpAdminAction = async (formData: FormData) => {
+  const email = formData.get("email")?.toString();
+  const password = formData.get("password")?.toString();
+  const firstName = formData.get("first_name")?.toString();
+  const lastName = formData.get("last_name")?.toString();
+  const deptId = formData.get("dept_id")?.toString();
+
+  const supabase = await createClient();
+  const origin = (await headers()).get("origin");
+
+  // Validate required fields
+  if (!email || !password || !firstName || !lastName || !deptId) {
+    return encodedRedirect("error", "/sign-up-admin", "All fields are required");
+  }
+
+  // Step 1: Sign up the user with Supabase Auth
+  const fullName = `${firstName} ${lastName}`;
+  const createdAt = new Date().toISOString();
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${origin}/auth/callback`,
+      data: {
+        full_name: fullName,
+        created_at: createdAt,
+      },
+    },
+  });
+
+  if (error) {
+    console.error(error.code + " " + error.message);
+    return encodedRedirect("error", "/sign-up-admin", error.message);
+  }
+
+  const user = data.user;
+  if (!user) {
+    return encodedRedirect("error", "/sign-up-admin", "User not found after signup");
+  }
+
+  console.log("User ID:", user.id); // Debugging to check UUID format
+
+  // Step 2: Insert additional user info into `users` table
+  const { error: userError } = await supabase.from("users").insert([
+    {
+      id: user.id,
+      full_name: fullName,
+      email: user.email,
+      created_at: createdAt,
+      role: "admin", // Set role to "supervisor" for admins
+    },
+  ]);
+
+  if (userError) {
+    console.error("Database Error (users):", userError);
+    return encodedRedirect(
+      "error",
+      "/sign-up-admin",
+      "User created, but profile saving failed."
+    );
+  }
+
+  // Step 3: Insert admin-specific info into `supervisors` table
+  const { error: supervisorError } = await supabase.from("supervisors").insert([
+    {
+      id: user.id, // UUID from auth
+      first_name: firstName,
+      last_name: lastName,
+      dept_id: parseInt(deptId, 10), // Convert to bigint
+    },
+  ]);
+
+  if (supervisorError) {
+    console.error("Database Error (supervisors):", JSON.stringify(supervisorError, null, 2));
+    return encodedRedirect(
+      "error",
+      "/sign-up-admin",
+      `User created, but supervisor details saving failed. Error: ${supervisorError.message}`
+    );
+  }
+
+  return encodedRedirect(
+    "success",
+    "/sign-up-admin",
+    "Thanks for signing up! Please check your email for a verification link."
+  );
+};
+
+// Existing signInAction remains unchanged
+export type Message = {
+  message: string;
+};
 
 
 

@@ -93,4 +93,9 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Style the time picker icon to gray */
+.time-picker-gray::-webkit-calendar-picker-indicator {
+  filter: grayscale(100%) brightness(10%); /* Makes the icon gray */
+}
 }
