@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify"; // Added ToastContainer import
 import "react-toastify/dist/ReactToastify.css";
 import { Modal } from "@/components/ui/modal";
 
@@ -105,65 +105,74 @@ export function TimeLogForm({ traineeId }: { traineeId: string }) {
     setIsSubmitting(true);
     const formattedDate = date!.toLocaleDateString("en-CA");
     const supabase = createClient();
-
+  
     const { data: existingLog, error: fetchError } = await supabase
       .from("timelogs")
       .select("time_id")
       .eq("trainee_id", traineeId)
       .eq("date", formattedDate)
       .maybeSingle();
-
+  
     if (fetchError) {
       toast.error("Error checking existing time log.");
+      console.error("Fetch error:", JSON.stringify(fetchError, null, 2));
       setIsSubmitting(false);
       return;
     }
-
+  
     if (existingLog) {
       toast.error("Time log for this date already exists.");
       setIsSubmitting(false);
       return;
     }
-
-    const totalHours = calculateTotalHours(timeIn, timeOut);
-
-    const { error: insertError } = await supabase.from("timelogs").insert([
-      {
-        trainee_id: traineeId,
-        date: formattedDate,
-        time_in: timeIn,
-        time_out: timeOut,
-        total_dayhours: totalHours,
-        status_logs: "Present",
-      },
-    ]);
-
-    if (insertError) {
-      toast.error("Error logging time. Please try again.");
-      console.error("Error logging time:", insertError);
+  
+    const totalHours = Math.round(calculateTotalHours(timeIn, timeOut)); // Round to nearest integer
+  
+    try {
+      const { error: insertError } = await supabase.from("timelogs").insert([
+        {
+          trainee_id: traineeId,
+          date: formattedDate,
+          time_in: timeIn,
+          time_out: timeOut,
+          total_dayhours: totalHours,
+          status_logs: "Present",
+        },
+      ]);
+  
+      if (insertError) {
+        toast.error("Error logging time. Please try again.");
+        console.error("Insert error:", JSON.stringify(insertError, null, 2));
+        setIsSubmitting(false);
+        return;
+      }
+    } catch (error) {
+      toast.error("Unexpected error occurred while logging time.");
+      console.error("Unexpected error:", error);
       setIsSubmitting(false);
       return;
     }
-
+  
+    // Rest of the function (attendance summary logic)...
     const { data: summary, error: summaryError } = await supabase
       .from("attendancesummary")
       .select("accomplished_hours, remaining_hours, days_present, days_absent")
       .eq("trainee_id", traineeId)
       .maybeSingle();
-
+  
     if (summaryError || !summary) {
       const { data: internData, error: internError } = await supabase
         .from("interns")
         .select("hours_to_render")
         .eq("id", traineeId)
         .single();
-
+  
       if (internError || !internData) {
         toast.error("Error fetching intern details.");
         setIsSubmitting(false);
         return;
       }
-
+  
       const { error: createSummaryError } = await supabase
         .from("attendancesummary")
         .insert([
@@ -175,7 +184,7 @@ export function TimeLogForm({ traineeId }: { traineeId: string }) {
             days_absent: 0,
           },
         ]);
-
+  
       if (createSummaryError) {
         toast.error("Error creating attendance summary.");
         setIsSubmitting(false);
@@ -184,7 +193,7 @@ export function TimeLogForm({ traineeId }: { traineeId: string }) {
     } else {
       const updatedAccomplishedHours = summary.accomplished_hours + totalHours;
       const updatedRemainingHours = summary.remaining_hours - totalHours;
-
+  
       const { error: updateSummaryError } = await supabase
         .from("attendancesummary")
         .update({
@@ -193,13 +202,13 @@ export function TimeLogForm({ traineeId }: { traineeId: string }) {
           days_present: summary.days_present + 1,
         })
         .eq("trainee_id", traineeId);
-
+  
       if (updateSummaryError) {
         toast.error("Error updating attendance summary.");
         setIsSubmitting(false);
         return;
       }
-
+  
       if (updatedRemainingHours <= 0) {
         await supabase
           .from("interns")
@@ -207,7 +216,7 @@ export function TimeLogForm({ traineeId }: { traineeId: string }) {
           .eq("id", traineeId);
       }
     }
-
+  
     setIsSubmitting(false);
     toast.success("Time logged successfully!");
     setTimeIn("");
@@ -338,28 +347,44 @@ export function TimeLogForm({ traineeId }: { traineeId: string }) {
   };
 
   const calculateTotalHours = (timeIn: string, timeOut: string): number => {
-    const [inHours, inMinutes] = timeIn.split(":").map(Number);
-    let [outHours, outMinutes] = timeOut.split(":").map(Number);
-
-    const workStartHour = 8;
-    const breakStart = 12;
-    const breakEnd = 13;
-    const maxWorkEndHour = 18;
-
-    const effectiveStartHour = inHours < workStartHour ? workStartHour : inHours;
-
-    if (outHours > maxWorkEndHour || (outHours === maxWorkEndHour && outMinutes > 0)) {
-      outHours = maxWorkEndHour;
-      outMinutes = 0;
+    // Extract only the hours, ignoring minutes
+    const inHours = Math.floor(Number(timeIn.split(":")[0]));
+    const outHours = Math.floor(Number(timeOut.split(":")[0]));
+  
+    const workStartHour = 8; // Official start time (8 AM)
+    const breakStart = 12; // Break start (12 PM)
+    const breakEnd = 13; // Break end (1 PM)
+    const maxWorkEndHour = 18; // Max work end time (6 PM)
+  
+    // Adjust effective start time (ignore minutes)
+    let effectiveStartHour = inHours;
+  
+    // If time in is before 8 AM, start counting from 8 AM
+    if (inHours < workStartHour) {
+      effectiveStartHour = workStartHour;
     }
-
-    let totalHours = Math.max(0, outHours - effectiveStartHour);
-
-    if (effectiveStartHour < breakStart && outHours > breakStart) {
-      totalHours -= 1;
+  
+    // If time in is between 12 PM and 1 PM, start counting from 1 PM
+    if (inHours >= breakStart && inHours < breakEnd) {
+      effectiveStartHour = breakEnd;
     }
-
-    return totalHours;
+  
+    // Adjust time out if it exceeds 6 PM
+    let effectiveEndHour = outHours;
+    if (outHours > maxWorkEndHour) {
+      effectiveEndHour = maxWorkEndHour;
+    }
+  
+    // Calculate total hours worked
+    let totalHours = effectiveEndHour - effectiveStartHour;
+  
+    // Subtract 1 hour for lunch break if work spans the break period
+    if (effectiveStartHour < breakStart && effectiveEndHour > breakStart) {
+      totalHours -= 1; // Subtract lunch break
+    }
+  
+    // Ensure total hours is not negative
+    return Math.max(0, totalHours);
   };
 
   const calculateStatus = (): string => "Present";
@@ -468,6 +493,19 @@ export function TimeLogForm({ traineeId }: { traineeId: string }) {
         onConfirm={modalConfig.onConfirm}
         title={modalConfig.title}
         description={modalConfig.description}
+      />
+
+      {/* Toast Notification Container */}
+      <ToastContainer 
+        position="top-right" 
+        autoClose={5000} 
+        hideProgressBar 
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
       />
     </>
   );

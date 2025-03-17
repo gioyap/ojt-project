@@ -367,7 +367,7 @@ export async function getAttendanceSummaryByTraineeId(traineeId: string) {
 
   const { data: summary, error: summaryError } = await supabase
     .from("attendancesummary")
-    .select("accomplished_hours, remaining_hours, days_present, days_late, days_absent")
+    .select("accomplished_hours, remaining_hours, days_present, days_absent")
     .eq("trainee_id", traineeId)
     .maybeSingle(); // Use maybeSingle to handle no rows gracefully
 
@@ -388,7 +388,6 @@ export async function getAttendanceSummaryByTraineeId(traineeId: string) {
           accomplished_hours: 0,
           remaining_hours: 0,
           days_present: 0,
-          days_late: 0,
           days_absent: 0,
         },
         error: null,
@@ -400,7 +399,6 @@ export async function getAttendanceSummaryByTraineeId(traineeId: string) {
         accomplished_hours: 0,
         remaining_hours: internData.hours_to_render || 0,
         days_present: 0,
-        days_late: 0,
         days_absent: 0,
       },
       error: null,
