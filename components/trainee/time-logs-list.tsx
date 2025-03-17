@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { EditTimeLogModal } from "./edit-time-log-modal";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface TimeLog {
   time_id: number;
@@ -13,9 +16,12 @@ interface TimeLog {
 
 export function TimeLogsList({ timeLogs }: { timeLogs: TimeLog[] }) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [editingLog, setEditingLog] = useState<TimeLog | null>(null);
+  const [updatedLogs, setUpdatedLogs] = useState<TimeLog[]>(timeLogs);
+  const [isSaving, setIsSaving] = useState(false);
   const entriesPerPage = 3;
 
-  if (timeLogs.length === 0) {
+  if (updatedLogs.length === 0) {
     return <p className="text-gray-400 text-lg">No time logs found yet.</p>;
   }
 
@@ -27,10 +33,64 @@ export function TimeLogsList({ timeLogs }: { timeLogs: TimeLog[] }) {
     return `${formattedHours}:${minutes.toString().padStart(2, "0")} ${period}`;
   };
 
-  const totalPages = Math.ceil(timeLogs.length / entriesPerPage);
+  const handleEditClick = (log: TimeLog) => {
+    console.log("Selected Log for Edit:", log);
+    setEditingLog(log);
+  };
+
+  const handleSaveEdit = async (timeIn: string, timeOut: string, _totalHours: number) => {
+    if (!editingLog || isSaving) return;
+
+    setIsSaving(true);
+    const callId = Date.now();
+    console.log(`handleSaveEdit called [${callId}] with:`, {
+      time_id: editingLog.time_id,
+      time_in: timeIn,
+      time_out: timeOut,
+    });
+
+    try {
+      const response = await fetch('/api/update-timelog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          time_id: editingLog.time_id,
+          time_in: timeIn,
+          time_out: timeOut,
+        }),
+      });
+
+      const responseData = await response.json();
+
+      if (response.ok) {
+        const updatedTotalHours = responseData.total_dayhours;
+        setUpdatedLogs(prevLogs =>
+          prevLogs.map(log =>
+            log.time_id === editingLog.time_id
+              ? { ...log, time_in: timeIn, time_out: timeOut, total_dayhours: updatedTotalHours }
+              : log
+          )
+        );
+        console.log(`Triggering success toast [${callId}]`);
+        toast.success("Time log updated successfully!");
+        setEditingLog(null);
+      } else {
+        console.error(`Update failed [${callId}]:`, responseData.error);
+        console.log(`Triggering error toast [${callId}]`);
+        toast.error(responseData.error || "Failed to update time log. Please try again.");
+      }
+    } catch (error) {
+      console.error(`Network error [${callId}]:`, error);
+      toast.error("Network error occurred. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const totalPages = Math.ceil(updatedLogs.length / entriesPerPage);
   const startIndex = (currentPage - 1) * entriesPerPage;
   const endIndex = startIndex + entriesPerPage;
-  const paginatedLogs = timeLogs.slice(startIndex, endIndex);
+  const paginatedLogs = updatedLogs.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -45,7 +105,8 @@ export function TimeLogsList({ timeLogs }: { timeLogs: TimeLog[] }) {
         {paginatedLogs.map((log) => (
           <div
             key={log.time_id}
-            className="bg-white p-5 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+            className="bg-white p-5 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
+            onClick={() => handleEditClick(log)}
           >
             <div className="space-y-1">
               <p className="text-lg font-medium text-gray-800">
@@ -75,8 +136,8 @@ export function TimeLogsList({ timeLogs }: { timeLogs: TimeLog[] }) {
                 <p
                   className={`text-lg font-semibold ${
                     log.status_logs === "Present"
-                      ? "text-green-600" // Green for "Present"
-                      : "text-red-600" // Red for "Absent"
+                      ? "text-green-600"
+                      : "text-red-600"
                   }`}
                 >
                   {log.status_logs}
@@ -120,6 +181,18 @@ export function TimeLogsList({ timeLogs }: { timeLogs: TimeLog[] }) {
           </button>
         </div>
       )}
+
+      <EditTimeLogModal
+        isOpen={!!editingLog}
+        onClose={() => setEditingLog(null)}
+        onSave={handleSaveEdit}
+        initialTimeIn={editingLog?.time_in || null}
+        initialTimeOut={editingLog?.time_out || null}
+        date={editingLog?.date || null}
+        timeId={editingLog?.time_id || 0}
+        isSaving={isSaving}
+      />
+
     </div>
   );
 }
