@@ -64,10 +64,18 @@ export function TimeLogsList({ timeLogs }: { timeLogs: TimeLog[] }) {
 
       if (response.ok) {
         const updatedTotalHours = responseData.total_dayhours;
+        const updatedStatus = responseData.status_logs; // Get status from API response
+        
         setUpdatedLogs(prevLogs =>
           prevLogs.map(log =>
             log.time_id === editingLog.time_id
-              ? { ...log, time_in: timeIn, time_out: timeOut, total_dayhours: updatedTotalHours }
+              ? { 
+                  ...log, 
+                  time_in: timeIn, 
+                  time_out: timeOut, 
+                  total_dayhours: updatedTotalHours,
+                  status_logs: updatedStatus // Update status_logs in UI
+                }
               : log
           )
         );
@@ -192,7 +200,7 @@ export function TimeLogsList({ timeLogs }: { timeLogs: TimeLog[] }) {
         timeId={editingLog?.time_id || 0}
         isSaving={isSaving}
       />
-
+      <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );
 }
