@@ -347,6 +347,8 @@ export function TimeLogForm({ traineeId }: { traineeId: string }) {
     setIsSubmitting(false);
     toast.success("Marked as absent successfully!");
     setIsModalOpen(false);
+
+    window.location.reload();
   };
 
   const calculateTotalHours = (timeIn: string, timeOut: string): number => {

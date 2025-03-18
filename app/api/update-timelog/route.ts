@@ -43,7 +43,6 @@ export async function POST(request: Request) {
     );
   }
 
-  // Server-side validation: time_in must be before time_out
   if (time_in >= time_out) {
     return NextResponse.json(
       { error: "Time in must be before time out" },
@@ -53,9 +52,10 @@ export async function POST(request: Request) {
 
   const total_dayhours = calculateTotalHours(time_in, time_out);
 
+  // Fetch original log with status_logs included
   const { data: originalLog, error: originalLogError } = await supabase
     .from("timelogs")
-    .select("trainee_id, total_dayhours, date")
+    .select("trainee_id, total_dayhours, date, status_logs")
     .eq("time_id", time_id)
     .single();
 
@@ -66,7 +66,6 @@ export async function POST(request: Request) {
     );
   }
 
-  // Validate that the date isn’t today
   const logDate = new Date(originalLog.date);
   const today = new Date();
   logDate.setHours(0, 0, 0, 0);
@@ -80,13 +79,17 @@ export async function POST(request: Request) {
 
   const originalHours = originalLog.total_dayhours;
   const hoursDifference = total_dayhours - originalHours;
+  const wasAbsent = originalLog.status_logs === "Absent";
+  const statusChangeToPresent = wasAbsent && total_dayhours > 0;
 
+  // Update timelogs with status_logs
   const { error: timelogError } = await supabase
     .from("timelogs")
     .update({
       time_in,
       time_out,
       total_dayhours,
+      status_logs: total_dayhours > 0 ? "Present" : "Absent",
     })
     .eq("time_id", time_id);
 
@@ -106,9 +109,10 @@ export async function POST(request: Request) {
 
   const hoursToRender = internData.hours_to_render;
 
+  // Fetch summary with days_present and days_absent
   const { data: summaryData, error: summaryFetchError } = await supabase
     .from("attendancesummary")
-    .select("accomplished_hours, remaining_hours")
+    .select("accomplished_hours, remaining_hours, days_present, days_absent")
     .eq("trainee_id", originalLog.trainee_id)
     .single();
 
@@ -118,12 +122,23 @@ export async function POST(request: Request) {
 
   const newAccomplishedHours = summaryData.accomplished_hours + hoursDifference;
   const newRemainingHours = hoursToRender - newAccomplishedHours;
+  
+  // Update days_present/days_absent only if status changed from Absent to Present
+  let updatedDaysPresent = summaryData.days_present;
+  let updatedDaysAbsent = summaryData.days_absent;
+  
+  if (statusChangeToPresent) {
+    updatedDaysPresent += 1;
+    updatedDaysAbsent = Math.max(0, updatedDaysAbsent - 1);
+  }
 
   const { error: summaryError } = await supabase
     .from("attendancesummary")
     .update({
       accomplished_hours: newAccomplishedHours,
       remaining_hours: newRemainingHours >= 0 ? newRemainingHours : 0,
+      days_present: updatedDaysPresent,
+      days_absent: updatedDaysAbsent,
     })
     .eq("trainee_id", originalLog.trainee_id);
 
@@ -131,5 +146,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: summaryError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, total_dayhours });
+  return NextResponse.json({ 
+    success: true, 
+    total_dayhours,
+    status_logs: total_dayhours > 0 ? "Present" : "Absent"
+  });
 }
