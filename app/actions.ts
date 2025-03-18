@@ -155,7 +155,7 @@ export const signInAction = async (
   // Step 2: Fetch the user's role from the `users` table
   const { data: userData, error: userError } = await supabase
     .from("users")
-    .select("role")
+    .select("role, id")
     .eq("id", authData.user?.id)
     .single();
 
@@ -172,9 +172,11 @@ export const signInAction = async (
   }
 
   // Step 4: Redirect based on role
-  if (formRole === "admin") {
+  if (userRole === "superadmin") {
     redirect("/protected/admin");
-  } else if (formRole === "trainee") {
+  } else if (userRole === "admin") {
+    redirect("/protected/admin/department");
+  } else if (userRole === "trainee") {
     redirect("/protected");
   }
 
@@ -265,12 +267,12 @@ export async function getIntern() {
   const supabase = await createClient();
 
   const {
-      data: { user },
-      error: authError,
+    data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-      return { error: "Unauthorized", user: null };
+    return { error: "Unauthorized", user: null };
   }
 
   // Define the expected type
@@ -278,54 +280,83 @@ export async function getIntern() {
     first_name: string;
     last_name: string;
     university: string;
-    department?: { dept_name: string }; // Ensure department is an object
+    department?: { dept_name: string } | { dept_name: string }[]; // Handle both cases
   };
 
+  // Fetch the user's role from the `users` table
   const { data: userRole, error: roleError } = await supabase
-      .from("users")
-      .select("role")
+    .from("users")
+    .select("role, full_name")
+    .eq("id", user.id)
+    .single();
+
+  if (roleError || !userRole) {
+    return { error: "Error fetching user role", user: null };
+  }
+
+  // Handle superadmin role
+  if (userRole.role === "superadmin") {
+    return {
+      message: "SUPERADMIN",
+      name: userRole.full_name,
+      role: "superadmin",
+    };
+  }
+
+  // Handle admin role
+  if (userRole.role === "admin") {
+    const { data: admin, error: adminError } = await supabase
+      .from("supervisors")
+      .select("first_name, last_name, dept_id, department:dept_id(dept_name)")
       .eq("id", user.id)
       .single();
 
-  if (roleError || !userRole) {
-      return { error: "Error fetching user role", user: null };
+    if (adminError) {
+      console.error("Error fetching admin details:", adminError);
+      return { error: "Error fetching admin details", user: null };
+    }
+
+    // Access the department name correctly (handle both array and object cases)
+    const departmentName = Array.isArray(admin.department)
+      ? admin.department[0]?.dept_name || "Unknown"
+      : (admin.department as { dept_name: string })?.dept_name || "Unknown";
+
+    return {
+      message: "ADMIN",
+      name: `${admin.first_name} ${admin.last_name}`,
+      dept: departmentName,
+      role: "admin",
+    };
   }
 
-  if (userRole.role === "admin") {
-      const { data: admin, error: adminError } = await supabase
-          .from("supervisors")
-          .select("first_name, last_name, department:dept_id(dept_name)")
-          .eq("id", user.id)
-          .single<InternData>();
-
-      if (adminError) {
-          console.error("Error fetching admin details:", adminError);
-          return { error: "Error fetching admin details", user: null };
-      }
-
-      return {
-          message: "ADMIN",
-          name: `${admin.first_name} ${admin.last_name}`,
-          dept: admin.department?.dept_name || "Unknown", // Access directly as an object
-      };
-  }
-
-  const { data: intern, error: internError } = await supabase
+  // Handle trainee role
+  if (userRole.role === "trainee") {
+    const { data: intern, error: internError } = await supabase
       .from("interns")
-      .select("first_name, last_name, university, department:dept_id(dept_name)")
+      .select("first_name, last_name, university, dept_id, department:dept_id(dept_name)")
       .eq("id", user.id)
-      .single<InternData>();
+      .single();
 
-  if (internError) {
+    if (internError) {
       console.error("Error fetching intern:", internError);
       return { error: "Error fetching intern", user: null };
-  }
+    }
 
-  return {
+    // Access the department name correctly (handle both array and object cases)
+    const departmentName = Array.isArray(intern.department)
+      ? intern.department[0]?.dept_name || "Unknown"
+      : (intern.department as { dept_name: string })?.dept_name || "Unknown";
+
+    return {
       name: `${intern.first_name} ${intern.last_name}`,
       university: intern.university,
-      dept: intern.department?.dept_name || "Unknown", // Access directly as an object
-  };
+      dept: departmentName,
+      role: "trainee",
+    };
+  }
+
+  // Default return for unknown roles
+  return { error: "Unknown role", user: null };
 }
 
 export async function updateComment(date: string, traineeId: string, comment: string) {
