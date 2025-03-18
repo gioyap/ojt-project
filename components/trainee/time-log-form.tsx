@@ -222,6 +222,9 @@ export function TimeLogForm({ traineeId }: { traineeId: string }) {
     setTimeIn("");
     setTimeOut("");
     setIsModalOpen(false);
+  
+    // Refresh the page after successful submission
+    window.location.reload();
   };
 
   const handleMarkAbsent = async () => {

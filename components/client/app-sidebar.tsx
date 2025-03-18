@@ -33,18 +33,23 @@ const traineeItems = [
 
 // Sidebar menu items for admins
 const adminItems = [
-	{title: "Intern Time Logs", url: "/protected/admin", icon: Home },
-	{title: "Intern Tasks", url: "/protected/admin-task", icon: MessageSquareQuote }
+  {title: "Intern Time Logs", url: "/protected/admin/department", icon: Home },
+  {title: "Intern Tasks", url: "/protected/admin-task/department", icon: MessageSquareQuote }
+];
+
+// Sidebar menu items for superadmins
+const superadminItems = [
+  {title: "Intern Time Logs", url: "/protected/admin", icon: Home },
+  {title: "Intern Tasks", url: "/protected/admin-task", icon: MessageSquareQuote }
 ];
 
 export function AppSidebar() {
   const [user, setUser] = useState<{
     name: string;
-    university?: string;
     dept?: string;
+    role?: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -55,19 +60,11 @@ export function AppSidebar() {
         console.error("Error fetching user:", data.error);
         setError(data.error);
       } else {
-        if (data.message === "ADMIN") {
-          setIsAdmin(true);
-          setUser({
-            name: data.name,
-            dept: data.dept, // Ensure this is correctly set
-          });
-        } else {
-          setUser({
-            name: data.name ?? "",
-            university: data.university,
-            dept: data.dept, // Ensure this is correctly set
-          });
-        }
+        setUser({
+          name: data.name,
+          dept: data.dept,
+          role: data.role,
+        });
       }
       setIsLoading(false);
     }
@@ -75,12 +72,18 @@ export function AppSidebar() {
     fetchUser();
   }, []);
 
-  // Debugging: Log the user data
-  useEffect(() => {
-    console.log("User Data:", user);
-  }, [user]);
+  // Determine menu items based on role
+  const getMenuItems = () => {
+    if (user?.role === "superadmin") {
+      return superadminItems;
+    } else if (user?.role === "admin") {
+      return adminItems;
+    } else {
+      return traineeItems;
+    }
+  };
 
-  const menuItems = isAdmin ? adminItems : traineeItems;
+  const menuItems = getMenuItems();
 
   return (
     <Sidebar>
@@ -97,22 +100,22 @@ export function AppSidebar() {
                   <div className="w-24 h-4 bg-gray-200 rounded animate-pulse"></div>
                   <div className="w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
                 </div>
-              ) : isAdmin ? (
-                <div className="flex flex-col">
-                  <span className="font-medium text-xl">{user?.name}</span>
-                  <span className="text-xs text-gray-500">
-                    {user?.dept || "No Department"} Department
-                  </span>
-                </div>
               ) : user ? (
                 <div className="flex flex-col">
                   <span className="font-medium text-xl">{user.name}</span>
-                  <span className="text-xs text-gray-500">
-                    {user.university}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {user.dept || "No Department"} Department
-                  </span>
+                  {user.role === "admin" && (
+                    <>
+                      <span className="text-xs text-gray-500">
+                        {user.dept || "No Department"} Department
+                      </span>
+                      <span className="text-xs text-gray-500">{user.role?.toUpperCase()}</span>
+                    </>
+                  )}
+                  {user.role === "trainee" && (
+                    <span className="text-xs text-gray-500">
+                      {user.dept || "No Department"} Department
+                    </span>
+                  )}
                 </div>
               ) : (
                 <p className="text-gray-400 text-sm">No user data found</p>
