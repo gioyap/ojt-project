@@ -19,7 +19,6 @@ export default async function ProtectedPage() {
 		return redirect("/sign-in");
 	}
 
-	// Fetch time logs
 	const { data: timeLogs, error: timeLogsError } = await supabase
 		.from("timelogs")
 		.select("*")
@@ -30,7 +29,6 @@ export default async function ProtectedPage() {
 		console.error("Error fetching time logs:", timeLogsError);
 	}
 
-	// Fetch attendance summary
 	const { summary: attendanceSummary } = await getAttendanceSummaryByTraineeId(
 		user.id
 	);
@@ -38,44 +36,26 @@ export default async function ProtectedPage() {
 	return (
 		<SidebarProvider>
 			<AppSidebar />
-			<SidebarTrigger className="fixed top-4 left-[260px] text-black p-2 shadow-lg" />
+			<SidebarTrigger className="fixed top-4 left-[20px] md:left-[260px] text-black p-2 shadow-lg" />
 
-			{/* Page Background with Image */}
-			<div
-				className="h-screen overflow-hidden"
-				style={{
-					backgroundImage: "url('/landing-bg.png')",
-					backgroundSize: "cover",
-					backgroundPosition: "center",
-				}}
-			>
-				{/* Grid Layout */}
-				<div className="grid grid-cols-3 gap-6 p-10 h-full bg-white/50 backdrop-blur-md rounded-lg">
-					{/* Main Content Area */}
-					<div className="col-span-2 flex flex-col gap-10 items-center">
-						<h2 className="font-extrabold text-3xl text-primary tracking-wide">
-							INTERN DASHBOARD
-						</h2>
+			{/* Responsive Layout */}
+			<div className="min-h-screen p-4 2xl:p-8 bg-white/70 w-full">
+				<h2 className="font-extrabold text-3xl text-primary tracking-wide mb-6 text-center">
+					INTERN DASHBOARD
+				</h2>
 
-						{/* Scrollable Center Section */}
-						<div className="flex flex-col gap-6 h-[75vh] overflow-y-auto border rounded-lg shadow-md p-6 bg-white/80">
+				{/* Centering the columns */}
+				<div className="flex justify-center lg:ml-10 xl:ml-44 2xl:ml-0">
+					<div className="grid grid-cols-1 2xl:grid-cols-2 gap-6 w-full">
+						{/* Left Column */}
+						<div className="space-y-6 2xl:h-[75vh] overflow-y-auto">
 							<TimeLogForm traineeId={user.id} />
 							<CommentsList timeLogs={timeLogs || []} traineeId={user.id} />
 						</div>
-					</div>
 
-					{/* Sidebar */}
-					<div className="col-span-1 flex flex-col gap-6 pr-6">
-						<div>
-							<h3 className="font-bold text-xl mb-4 text-gray-800">
-								Attendance Summary
-							</h3>
+						{/* Right Column */}
+						<div className="space-y-6">
 							<AttendanceSummary summary={attendanceSummary} />
-						</div>
-						<div>
-							<h3 className="font-bold text-xl mb-4 text-gray-800">
-								Time Logs
-							</h3>
 							<TimeLogsList timeLogs={timeLogs || []} />
 						</div>
 					</div>

@@ -113,7 +113,7 @@ export function TimeLogsList({ timeLogs }: { timeLogs: TimeLog[] }) {
 	};
 
 	return (
-		<div className="w-full max-w-4xl space-y-6 p-6 rounded-xl shadow-lg border border-gray-200">
+		<div className="w-full max-w-4xl space-y-6 p-0 bg-white/70 md:p-6 md:rounded-xl md:shadow-lg md:border md:border-gray-200">
 			<h3 className="text-xl font-semibold text-primary">
 				Your Recent Time Logs
 			</h3>
