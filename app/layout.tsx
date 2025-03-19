@@ -34,7 +34,11 @@ export default function RootLayout({
 					disableTransitionOnChange
 				>
 					{/* Toast Notification Container */}
-					<ToastContainer position="top-right" autoClose={5000} hideProgressBar />
+					<ToastContainer
+						position="top-right"
+						autoClose={5000}
+						hideProgressBar
+					/>
 
 					{/* HEADER PART */}
 					<main className="w-full">
