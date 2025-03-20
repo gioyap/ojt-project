@@ -28,7 +28,9 @@
 		"react-dom": "19.0.0",
 		"react-icons": "^5.5.0",
 		"react-toastify": "^11.0.5",
-		"sonner": "^2.0.1"
+		"sonner": "^2.0.1",
+		"tailwindcss-animated": "^2.0.0",
+		"tailwindcss-motion": "^1.1.0"
 	},
 	"devDependencies": {
 		"@types/node": "22.10.2",
