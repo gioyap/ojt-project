@@ -4,11 +4,14 @@ import { createClient } from "@/utils/supabase/server";
 
 export async function GET(request: Request) {
   try {
-    console.log("Starting PDF generation with jspdf...");
+    console.log("Starting PDF generation with jspdf for admin...");
 
     const { searchParams } = new URL(request.url);
     const week = parseInt(searchParams.get("week") || "0");
+    const traineeId = searchParams.get("traineeId");
+
     if (!week) throw new Error("Week parameter is required");
+    if (!traineeId) throw new Error("Trainee ID parameter is required");
 
     const supabase = await createClient();
     const {
@@ -21,13 +24,25 @@ export async function GET(request: Request) {
       throw new Error("User not authenticated");
     }
 
-    // Fetch intern data
+    // Verify that the user is an admin (supervisor)
+    const { data: supervisorData, error: supervisorError } = await supabase
+      .from("supervisors")
+      .select("id")
+      .eq("id", user.id)
+      .single();
+
+    if (supervisorError || !supervisorData) {
+      console.error("Supervisor check error:", supervisorError?.message);
+      throw new Error("User is not authorized to generate reports");
+    }
+
+    // Fetch intern data for the specified trainee
     const { data: internData, error: internError } = await supabase
       .from("interns")
       .select(
         "first_name, last_name, university, start_date, hours_to_render, dept_id, program, year_level, section, schedule, host_company"
       )
-      .eq("id", user.id)
+      .eq("id", traineeId)
       .single();
 
     if (internError || !internData) {
@@ -113,11 +128,11 @@ export async function GET(request: Request) {
     console.log("Actual Start:", actualStart.toISOString());
     console.log("Actual End:", actualEnd.toISOString());
 
-    // Fetch timelogs data for the intern within the selected week
+    // Fetch timelogs data for the trainee within the selected week
     const { data: timelogsData, error: timelogsError } = await supabase
       .from("timelogs")
       .select("date, time_in, time_out, total_dayhours, status_logs, comments")
-      .eq("trainee_id", user.id)
+      .eq("trainee_id", traineeId)
       .gte("date", actualStart.toISOString().split("T")[0]) // Greater than or equal to start date
       .lte("date", actualEnd.toISOString().split("T")[0]) // Less than or equal to end date
       .order("date", { ascending: true });
@@ -250,11 +265,6 @@ export async function GET(request: Request) {
     const titleHeight = 10;
     const titlePadding = 5;
     const headerHeight = 8;
-
-    // Debug column widths
-    console.log("Column Widths:", columnWidths);
-    console.log("Total Column Width:", columnWidths.reduce((sum, width) => sum + width, 0));
-    console.log("Table Width:", tableWidth);
 
     // Function to convert 24-hour time to 12-hour AM/PM format
     const formatTimeTo12Hour = (time: string | null): string => {
@@ -400,7 +410,7 @@ export async function GET(request: Request) {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="internship-report-week-${week}.pdf"`,
+        "Content-Disposition": `attachment; filename="internship-report-week-${week}-trainee-${traineeId}.pdf"`,
         "Content-Length": pdfBuffer.length.toString(),
       },
     });
