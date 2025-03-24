@@ -93,7 +93,7 @@ export default function AdminTaskPage() {
       <div className="flex-1 w-full flex flex-col gap-8 p-6">
         {/* Header Section */}
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-white">INTERNS TASK LOGS</h1>
+          <h1 className="text-3xl font-bold text-black">INTERNS TASK LOGS</h1>
           <div className="flex items-center gap-4">
             <select
               title="Department"

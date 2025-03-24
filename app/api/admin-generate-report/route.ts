@@ -174,19 +174,67 @@ export async function GET(request: Request) {
       "MTSI": "https://dgqbospvmigwtrtfkvor.supabase.co/storage/v1/object/public/companies/logos/mtsilogo.png",
     };
 
+    // Get the logo URL based on the host_company
     const imageUrl = companyLogos[internData.host_company as keyof typeof companyLogos] || companyLogos["Flawless"];
     console.log("Selected logo URL for company", internData.host_company, ":", imageUrl);
-
+    
     // Generate PDF
     const doc = new jsPDF();
-
-    // Fetch and add image
+    
+    // Fetch the image and process it
     const response = await fetch(imageUrl);
     if (!response.ok) throw new Error(`Failed to fetch image: ${imageUrl}`);
     const imageBuffer = await response.arrayBuffer();
     const imageBase64 = Buffer.from(imageBuffer).toString("base64");
     const imageDataUrl = `data:image/png;base64,${imageBase64}`;
-    doc.addImage(imageDataUrl, "PNG", 85, 10, 40, 10);
+    
+    // Custom handling for each logo, based on host_company
+    let fixedWidth, fixedHeight, xPos, yPos;
+    
+    switch (internData.host_company) {
+      case "Flawless":
+        // Set specific dimensions for Flawless logo
+        fixedWidth = 40;
+        fixedHeight = 15;
+        xPos = 85;
+        yPos = 10;
+        break;
+    
+      case "Beauty and Butter":
+        // Set specific dimensions for Beauty and Butter logo
+        fixedWidth = 40;
+        fixedHeight = 15;
+        xPos = 85;
+        yPos = 5;
+        break;
+    
+      case "FINA":
+        // Set specific dimensions for FINA logo
+        fixedWidth = 45;
+        fixedHeight = 15;
+        xPos = 85;
+        yPos = 8;
+        break;
+    
+      case "MTSI":
+        // Set specific dimensions for MTSI logo
+        fixedWidth = 35;
+        fixedHeight = 25;
+        xPos = 85;
+        yPos = 3;
+        break;
+    
+      default:
+        // Default case for an unknown company, use Flawless as a fallback
+        fixedWidth = 40;
+        fixedHeight = 15;
+        xPos = 85;
+        yPos = 10;
+        break;
+    }
+    
+    // Add image with the calculated dimensions and position
+    doc.addImage(imageDataUrl, "PNG", xPos, yPos, fixedWidth, fixedHeight);
 
     // Header
     doc.setFillColor(255, 255, 255);

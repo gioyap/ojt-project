@@ -37,10 +37,10 @@ export default async function ProtectedPage() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarTrigger className="fixed top-4 left-[20px] md:left-[260px] text-black p-2 shadow-lg" />
+      <SidebarTrigger className="relative -top-12 left-4 p-4" />
 
       {/* Responsive Layout */}
-      <div className="min-h-screen p-4 2xl:p-8 bg-white/70 dark:bg-gray-900 w-full">
+      <div className="min-h-screen p-1 2xl:p-1 bg-white/70 dark:bg-gray-900 w-full">
         <div className="flex justify-between items-center mb-6">
           <h2 className="font-extrabold text-3xl text-primary dark:text-white tracking-wide text-center flex-1">
             INTERN DASHBOARD

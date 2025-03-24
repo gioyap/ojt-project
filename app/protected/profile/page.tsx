@@ -46,7 +46,7 @@ export default async function ProfilePage() {
       <SidebarTrigger className="fixed top-4 left-[260px] text-white p-2 shadow-lg hover:from-blue-800 hover:to-purple-700 transition-all" />
       <div className="flex-1 w-full flex justify-center items-start min-h-screen p-8">
         <div className="flex flex-col gap-12 w-full max-w-5xl items-center">
-          <h2 className="font-extrabold text-3xl text-white tracking-wide text-center">
+          <h2 className="font-extrabold text-3xl text-black tracking-wide text-center">
             PROFILE PAGE
           </h2>
           <ProfileForm intern={intern} deptName={intern.department.dept_name} />

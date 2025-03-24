@@ -89,12 +89,12 @@ export default function ProtectedPage() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarTrigger className="fixed top-4 left-[260px]" />
+      <SidebarTrigger className="relative -top-12 left-4 p-4" />
       <div className="flex-1 w-full flex flex-col gap-8 p-6">
         {/* Header Section */}
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-white">INTERNS TIME LOGS</h1>
-          <div className="flex items-center gap-4">
+  <h1 className="text-3xl font-bold" style={{ color: 'black' }}>INTERNS TIME LOGS</h1>
+  <div className="flex items-center gap-4">
             <select
               title="Department"
               value={selectedDepartmentId}

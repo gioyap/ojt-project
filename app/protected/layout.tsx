@@ -10,9 +10,9 @@ export default async function Layout({
 	return (
 		<div
 			className="w-full lg:h-screen 2xl:overflow-hidden bg-cover bg-center"
-			style={{ backgroundImage: "url('/landing-bg.png')" }}
+			style={{ backgroundImage: "url('/bg-mainpge.png')" }}
 		>
-			<nav className="w-full flex justify-end border-b border-b-foreground/10 h-16">
+			<nav className="bg-pink-400 w-full flex justify-end border-b border-b-foreground/10 h-16">
 				<div className="w-full max-w-5xl flex justify-end items-center p-3 px-5 text-sm">
 					<HeaderAuth />
 				</div>

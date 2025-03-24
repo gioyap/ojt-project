@@ -4,9 +4,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { SmtpMessage } from "../smtp-message";
 import { createClient } from "@/utils/supabase/server";
-
 export default async function Signup(props: {
   searchParams: Promise<Message>;
 }) {
@@ -21,7 +19,7 @@ export default async function Signup(props: {
   if (error) {
     console.error("Error fetching departments:", error);
     return (
-      <div className="w-full flex-1 flex items-center h-screen sm:max-w-md justify-center gap-2 p-4">
+      <div className="w-full flex-1 flex items-center justify-center h-screen sm:max-w-md gap-2 p-4">
         <FormMessage message={{ message: "Failed to load departments." }} />
       </div>
     );
@@ -29,7 +27,7 @@ export default async function Signup(props: {
 
   if ("message" in searchParams) {
     return (
-      <div className="w-full flex-1 flex items-center h-screen sm:max-w-md justify-center gap-2 p-4">
+      <div className="w-full flex-1 flex items-center justify-center h-screen sm:max-w-md gap-2 p-4">
         <FormMessage message={searchParams} />
       </div>
     );
@@ -39,11 +37,11 @@ export default async function Signup(props: {
     <>
       {/* Background Wrapper */}
       <div
-        className="relative w-full min-h-screen bg-cover bg-center bg-no-repeat"
+        className="relative w-full min-h-screen bg-cover bg-center bg-no-repeat flex items-center justify-center"
         style={{ backgroundImage: "url('/landing-bg.png')" }}
       >
         {/* Form Container */}
-        <form className="flex flex-col w-full max-w-4xl mx-auto bg-white bg-opacity-80 p-8 rounded-lg shadow-lg mt-16 sm:mt-8">
+        <form className="flex flex-col animate-in fade-in-5 duration-1000 w-full max-w-4xl mx-auto bg-white bg-opacity-80 p-8 rounded-lg shadow-lg mt-2">
           <h1 className="text-2xl font-medium text-center">Sign up</h1>
           <p className="text-sm text-center text-foreground mt-2">
             Already have an account?{" "}
@@ -97,7 +95,7 @@ export default async function Signup(props: {
                 id="phone_no"
                 name="phone_no"
                 type="tel"
-                placeholder="1234567890"
+                placeholder="09*********"
                 required
               />
 
@@ -189,10 +187,16 @@ export default async function Signup(props: {
             </div>
           </div>
 
-          {/* Submit Button */}
-          <SubmitButton formAction={signUpAction} pendingText="Signing up...">
-            Sign up
-          </SubmitButton>
+          {/* Submit Button with extended width and centered */}
+          <div className="flex w-full justify-center mt-6">
+            <SubmitButton
+              formAction={signUpAction}
+              pendingText="Signing up..."
+              className="w-full bg-red-600 hover:bg-red-700 transition duration-300"
+            >
+              Sign up
+            </SubmitButton>
+          </div>
 
           {/* Form Message (for errors or success messages) */}
           <FormMessage message={searchParams} />
