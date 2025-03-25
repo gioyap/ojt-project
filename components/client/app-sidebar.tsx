@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Home, User, MessageSquareQuote, LogOut } from "lucide-react";  // Import LogOut icon
+import { Home, User, MessageSquareQuote, LogOut } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -13,23 +13,22 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { getIntern } from "@/app/actions";
-import { signOutAction } from "@/app/actions";  // Import the sign-out action
+import { signOutAction } from "@/app/actions";
 
 interface User {
   name: string;
   university: string;
   dept: string;
   role: string;
+  profile_picture?: string; // Add profile_picture to the interface
 }
 
-// Sidebar menu items for trainees
 const traineeItems = [
   { title: "Home", url: "/", icon: Home },
   { title: "Profile", url: "/protected/profile", icon: User },
-  { title: "Logout", action: "logout", icon: LogOut },  // Add logout item
+  { title: "Logout", action: "logout", icon: LogOut },
 ];
 
-// Sidebar menu items for admins
 const adminItems = [
   { title: "Intern Time Logs", url: "/protected/admin/department", icon: Home },
   {
@@ -37,10 +36,9 @@ const adminItems = [
     url: "/protected/admin-task/department",
     icon: MessageSquareQuote,
   },
-  { title: "Logout", action: "logout", icon: LogOut },  // Add logout item
+  { title: "Logout", action: "logout", icon: LogOut },
 ];
 
-// Sidebar menu items for superadmins
 const superadminItems = [
   { title: "Intern Time Logs", url: "/protected/admin", icon: Home },
   {
@@ -48,7 +46,7 @@ const superadminItems = [
     url: "/protected/admin-task",
     icon: MessageSquareQuote,
   },
-  { title: "Logout", action: "logout", icon: LogOut },  // Add logout item
+  { title: "Logout", action: "logout", icon: LogOut },
 ];
 
 export function AppSidebar() {
@@ -56,22 +54,38 @@ export function AppSidebar() {
     name: string;
     dept?: string;
     role?: string;
+    profile_picture?: string; // Add profile_picture to state
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     async function fetchUser() {
-      const data = await getIntern();
+      const data: { 
+        error?: string; 
+        user?: null; 
+        message?: string; 
+        name?: string; 
+        role?: string; 
+        dept?: string; 
+        university?: string; 
+        profile_picture?: string; 
+      } = await getIntern();
 
       if (data.error) {
         console.error("Error fetching user:", data.error);
         setError(data.error);
       } else {
+        // Ensure profile_picture is correctly fetched from Supabase and use it in the state
+        const profilePictureUrl = data.profile_picture 
+          ? data.profile_picture // Profile picture URL from Supabase
+          : ""; // Handle case where profile_picture might be empty
+
         setUser({
-          name: data.name,
+          name: data.name || "",
           dept: data.dept,
           role: data.role,
+          profile_picture: profilePictureUrl // Add profile picture from data
         });
       }
       setIsLoading(false);
@@ -80,7 +94,6 @@ export function AppSidebar() {
     fetchUser();
   }, []);
 
-  // Determine menu items based on role
   const getMenuItems = () => {
     if (user?.role === "superadmin") {
       return superadminItems;
@@ -93,9 +106,8 @@ export function AppSidebar() {
 
   const menuItems = getMenuItems();
 
-  // Handle the sign-out process
   const handleLogout = async () => {
-    await signOutAction();  // Call the signOutAction that logs the user out
+    await signOutAction();
   };
 
   return (
@@ -105,36 +117,51 @@ export function AppSidebar() {
           <SidebarGroupLabel></SidebarGroupLabel>
           <SidebarGroupContent>
             <div className="px-3 py-4 border-b">
-              {error ? (
-                <p className="text-red-500 text-sm">{error}</p>
-              ) : isLoading ? (
-                <div className="flex flex-col gap-2">
-                  <div className="w-32 h-6 bg-gray-200 rounded animate-pulse"></div>
-                  <div className="w-24 h-4 bg-gray-200 rounded animate-pulse"></div>
-                  <div className="w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
+              {/* Profile Picture Section */}
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex-shrink-0">
+                  {user?.profile_picture ? (
+                    <img
+                      src={user.profile_picture}
+                      alt="Profile"
+                      className="w-16 h-16 rounded-full object-cover border-2 border-gray-300"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500 text-sm">No image</span>
+                    </div>
+                  )}
                 </div>
-              ) : user ? (
-                <div className="flex flex-col">
-                  <span className="font-medium text-xl">{user.name}</span>
-                  {user.role === "admin" && (
-                    <>
+                {error ? (
+                  <p className="text-red-500 text-sm">{error}</p>
+                ) : isLoading ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="w-32 h-6 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="w-24 h-4 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                ) : user ? (
+                  <div className="flex flex-col">
+                    <span className="font-medium text-lg">{user.name}</span>
+                    {user.role === "admin" && (
+                      <>
+                        <span className="text-xs text-gray-500">
+                          {user.dept || "No Department"} Department
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {user.role?.toUpperCase()}
+                        </span>
+                      </>
+                    )}
+                    {user.role === "trainee" && (
                       <span className="text-xs text-gray-500">
                         {user.dept || "No Department"} Department
                       </span>
-                      <span className="text-xs text-gray-500">
-                        {user.role?.toUpperCase()}
-                      </span>
-                    </>
-                  )}
-                  {user.role === "trainee" && (
-                    <span className="text-xs text-gray-500">
-                      {user.dept || "No Department"} Department
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <p className="text-gray-400 text-sm">No user data found</p>
-              )}
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-gray-400 text-sm">No user data found</p>
+                )}
+              </div>
             </div>
 
             <SidebarMenu className="pt-4">
@@ -155,7 +182,7 @@ export function AppSidebar() {
                   item.action === "logout" ? (
                     <SidebarMenuItem key={item.title} onClick={handleLogout}>
                       <SidebarMenuButton asChild>
-					  <a className="flex items-center gap-2 cursor-pointer">
+                        <a className="flex items-center gap-2 cursor-pointer">
                           <item.icon size={18} />
                           <span>{item.title}</span>
                         </a>

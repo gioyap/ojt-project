@@ -21,8 +21,8 @@ export const signUpAction = async (formData: FormData) => {
   const hostCompany = formData.get("host_company")?.toString();
   const schedule = formData.get("schedule")?.toString();
   const status = "Active";
-
   const supabase = await createClient();
+  await supabase.auth.signOut();
   const origin = (await headers()).get("origin");
 
   // Validate required fields
@@ -333,7 +333,7 @@ export async function getIntern() {
   if (userRole.role === "trainee") {
     const { data: intern, error: internError } = await supabase
       .from("interns")
-      .select("first_name, last_name, university, dept_id, department:dept_id(dept_name)")
+      .select("first_name, last_name, university, dept_id, department:dept_id(dept_name), profile_picture")
       .eq("id", user.id)
       .single();
 
@@ -352,6 +352,7 @@ export async function getIntern() {
       university: intern.university,
       dept: departmentName,
       role: "trainee",
+      profile_picture: intern.profile_picture,
     };
   }
 

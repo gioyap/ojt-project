@@ -167,9 +167,23 @@ export const TraineeModal: React.FC<TraineeModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
-          <div className="flex justify-between items-start">
+    <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+      <div className="p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center">
+             {/* Profile Picture or No Image Text */}
+             {traineeDetails?.profile_picture ? (
+              <img
+                src={traineeDetails?.profile_picture}
+                alt="Trainee"
+                className="w-12 h-12 rounded-full object-cover mr-4" // Adjust size as needed
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-center text-sm text-gray-600 mr-4">
+                No Image
+              </div>
+            )}
+            
             <div>
               <h3 className="text-2xl font-semibold text-gray-800">
                 {traineeDetails?.first_name} {traineeDetails?.last_name}
@@ -181,28 +195,29 @@ export const TraineeModal: React.FC<TraineeModalProps> = ({
                 {traineeDetails?.host_company}
               </p>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-              aria-label="Close Modal"
-            >
-              <svg
-                className="h-6 w-6 text-gray-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
           </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+            aria-label="Close Modal"
+          >
+            <svg
+              className="h-6 w-6 text-gray-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
         </div>
-
+      </div>
+      
         <div className="p-6">
           {error ? (
             <p className="text-red-500 text-sm">{error}</p>
