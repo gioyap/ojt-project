@@ -1,4 +1,3 @@
-// components/admin/TraineeModal.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -6,6 +5,7 @@ import {
   getTimelogsByTraineeId,
   getAttendanceSummaryByTraineeId,
 } from "@/app/actions";
+import AdminGenerateReportButton from "./admin-generate-report-button";
 
 interface TraineeModalProps {
   isOpen: boolean;
@@ -26,8 +26,8 @@ export const TraineeModal: React.FC<TraineeModalProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [filterType, setFilterType] = useState<"week" | "month" | "all">("all");
   const [selectedMonth, setSelectedMonth] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true); // Add loading state
-  const [error, setError] = useState<string | null>(null); // Add error state
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const ROWS_PER_PAGE = 7;
 
@@ -254,44 +254,50 @@ export const TraineeModal: React.FC<TraineeModalProps> = ({
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <h4 className="text-lg font-semibold text-gray-800">Timelogs</h4>
-                  <div className="flex gap-2 items-center">
-                    <button
-                      onClick={() => filterTimelogs("week")}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        filterType === "week"
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      This Week
-                    </button>
-                    <select
-                      title="Month"
-                      value={selectedMonth}
-                      onChange={handleMonthChange}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        filterType === "month" && selectedMonth
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      <option value="">Select Month</option>
-                      {getMonthOptions().map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => filterTimelogs("all")}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        filterType === "all"
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      All
-                    </button>
+                  <div className="flex gap-4 items-center">
+                    <div className="flex gap-2 items-center">
+                      <button
+                        onClick={() => filterTimelogs("week")}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                          filterType === "week"
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        This Week
+                      </button>
+                      <select
+                        title="Month"
+                        value={selectedMonth}
+                        onChange={handleMonthChange}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          filterType === "month" && selectedMonth
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        <option value="">Select Month</option>
+                        {getMonthOptions().map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => filterTimelogs("all")}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                          filterType === "all"
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        All
+                      </button>
+                    </div>
+                    <AdminGenerateReportButton
+                      traineeId={traineeId}
+                      startDate={traineeDetails?.start_date}
+                    />
                   </div>
                 </div>
 
