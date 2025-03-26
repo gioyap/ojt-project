@@ -61,13 +61,17 @@ export function EditTimeLogModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Edit Time Log</h2>
-        <div className="space-y-6 mb-6">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-2 sm:p-4">
+      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-sm sm:max-w-md">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">
+          Edit Time Log
+        </h2>
+        <div className="space-y-4 sm:space-y-6 mb-4 sm:mb-6">
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Date</label>
-            <div className="text-lg font-semibold text-gray-800">
+            <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">
+              Date
+            </label>
+            <div className="text-base sm:text-lg font-semibold text-gray-800">
               {date
                 ? new Date(date).toLocaleDateString("en-US", {
                     weekday: "short",
@@ -79,33 +83,40 @@ export function EditTimeLogModal({
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Time In</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">
+              Time In
+            </label>
             <input
               title="Time In"
               type="time"
               value={timeIn}
               onChange={(e) => setTimeIn(e.target.value)}
-              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+              className="w-full p-2 text-xs sm:text-sm border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Time Out</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">
+              Time Out
+            </label>
             <input
               title="Time Out"
               type="time"
               value={timeOut}
               onChange={(e) => setTimeOut(e.target.value)}
-              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+              className="w-full p-2 text-xs sm:text-sm border rounded-md focus:ring-2 focus:ring-pink-500 focus:border-transparent"
             />
           </div>
         </div>
-        <div className="flex justify-end gap-4">
-          <Button onClick={onClose} className="bg-gray-400 text-white hover:bg-gray-500">
+        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4">
+          <Button
+            onClick={onClose}
+            className="w-full sm:w-auto px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-gray-400 text-white hover:bg-gray-500"
+          >
             Cancel
           </Button>
           <Button
             onClick={handleSave}
-            className="bg-pink-500 text-white hover:bg-pink-600"
+            className="w-full sm:w-auto px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-pink-500 text-white hover:bg-pink-600"
             disabled={!timeIn || !timeOut || isSaving}
           >
             {isSaving ? "Saving..." : "Save"}

@@ -85,12 +85,12 @@ export default function AdminGenerateReportButton({ traineeId, startDate }: Admi
   };
 
   return (
-    <div className="flex gap-4 items-center">
+    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-center w-full sm:w-auto">
       <select
         title="Select Week"
         value={selectedWeek || ""}
         onChange={(e) => setSelectedWeek(parseInt(e.target.value) || null)}
-        className="px-4 py-2 rounded-full text-sm font-medium border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-700 hover:bg-gray-200"
+        className="w-full sm:w-64 p-2 sm:p-2.5 text-xs sm:text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
       >
         <option value="">Select Week</option>
         {weekRanges.map(({ week, start, end }) => (
@@ -99,7 +99,11 @@ export default function AdminGenerateReportButton({ traineeId, startDate }: Admi
           </option>
         ))}
       </select>
-      <Button onClick={handleGenerateReport} disabled={!selectedWeek}>
+      <Button
+        onClick={handleGenerateReport}
+        disabled={!selectedWeek}
+        className="w-full sm:w-auto px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm"
+      >
         Generate Report
       </Button>
     </div>
