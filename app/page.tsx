@@ -5,6 +5,7 @@ export default function Home() {
   return (
     <div className="relative w-full min-h-screen">
       {/* Background Image */}
+      {/* FINDING BUGS */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: "url('/landing-bg.png')" }}
