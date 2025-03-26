@@ -24,20 +24,24 @@ export function Modal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">{title}</h2>
-        <p className="text-gray-600 mb-6">{description}</p>
-        <div className="flex justify-end gap-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-2 sm:p-4">
+      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-sm sm:max-w-md">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">
+          {title}
+        </h2>
+        <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
+          {description}
+        </p>
+        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4">
           <Button
             onClick={onClose}
-            className="bg-gray-400 text-white hover:bg-gray-500"
+            className="w-full sm:w-auto px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-gray-400 text-white hover:bg-gray-500"
           >
             {cancelText}
           </Button>
           <Button
             onClick={onConfirm}
-            className="bg-pink-500 text-white hover:bg-pink-600"
+            className="w-full sm:w-auto px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm bg-pink-500 text-white hover:bg-pink-600"
           >
             {confirmText}
           </Button>
