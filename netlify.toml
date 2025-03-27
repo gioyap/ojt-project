@@ -1,7 +1,5 @@
-[functions]
-  node_bundler = "esbuild"
+[build]
+  functions = "netlify/functions"
 
-[[functions.scheduler]]
-  # Run every week (Monday at 3:00 AM UTC)
-  cron = "0 3 * * 1"
-  path = "/.netlify/functions/keep-alive"
+[functions."keep-alive"]
+  schedule = "0 0 1,6,11,16,21,26 * *"  # Runs at midnight on the 1st, 6th, 11th, 16th, 21st, 26th of every month
