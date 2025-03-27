@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getIntern } from "@/app/actions";
 import { signOutAction } from "@/app/actions";
+import { ThemeSwitcher } from "../theme-switcher";
 
 interface User {
   name: string;
@@ -109,8 +110,8 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar>
-      <SidebarContent>
+    <Sidebar className="h-screen">
+      <SidebarContent className="flex flex-col h-full">
         <SidebarGroup>
           {/* Profile Picture in SidebarGroupLabel */}
           <SidebarGroupLabel className="flex justify-center py-10 border-b">
@@ -130,7 +131,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
 
           {/* User Details and Menu in SidebarGroupContent */}
-          <SidebarGroupContent>
+          <SidebarGroupContent className="flex flex-col h-full">
             <div className="px-3 py-4 border-b flex justify-center">
               {error ? (
                 <p className="text-red-500 text-sm">{error}</p>
@@ -163,7 +164,7 @@ export function AppSidebar() {
               )}
             </div>
 
-            <SidebarMenu className="pt-4">
+            <SidebarMenu className="pt-4 flex flex-col h-full">
               {isLoading ? (
                 <div className="flex flex-col gap-2">
                   {[1, 2].map((item) => (
@@ -177,27 +178,34 @@ export function AppSidebar() {
                   ))}
                 </div>
               ) : (
-                menuItems.map((item) =>
-                  item.action === "logout" ? (
-                    <SidebarMenuItem key={item.title} onClick={handleLogout}>
-                      <SidebarMenuButton asChild>
-                        <a className="flex items-center gap-2 cursor-pointer">
-                          <item.icon size={18} />
-                          <span>{item.title}</span>
-                        </a>
-                      </SidebarMenuButton>
+                <>
+                  {menuItems.map((item) =>
+                    item.action === "logout" ? (
+                      <SidebarMenuItem key={item.title} onClick={handleLogout}>
+                        <SidebarMenuButton asChild>
+                          <a className="flex items-center gap-2 cursor-pointer">
+                            <item.icon size={18} />
+                            <span>{item.title}</span>
+                          </a>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ) : (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild>
+                          <a href={item.url} className="flex items-center gap-2">
+                            <item.icon size={18} />
+                            <span>{item.title}</span>
+                          </a>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  )}
+                  <div className="mt-auto border-t pt-2">
+                    <SidebarMenuItem>
+                      <ThemeSwitcher />
                     </SidebarMenuItem>
-                  ) : (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild>
-                        <a href={item.url} className="flex items-center gap-2">
-                          <item.icon size={18} />
-                          <span>{item.title}</span>
-                        </a>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                )
+                  </div>
+                </>
               )}
             </SidebarMenu>
           </SidebarGroupContent>
