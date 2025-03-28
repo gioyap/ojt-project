@@ -1,0 +1,5 @@
+[build]
+  functions = "netlify/functions"
+
+[functions."keep-alive"]
+  schedule = "0 0 1,6,11,16,21,26 * *"  # Runs at midnight on the 1st, 6th, 11th, 16th, 21st, 26th of every month
