@@ -1,3 +1,4 @@
+// components/trainee/generate-report-button.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -28,12 +29,14 @@ export default function GenerateReportButton() {
 
       setStartDate(internData.start_date);
 
+      // Calculate Monday-to-Friday weeks
       const traineeStart = new Date(internData.start_date);
       const today = new Date();
       const weeks = [];
       let weekStart = new Date(traineeStart);
 
-      const dayOfWeek = weekStart.getDay();
+      // Adjust weekStart to the previous Monday if not already a Monday
+      const dayOfWeek = weekStart.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
       const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
       weekStart.setDate(weekStart.getDate() - daysToMonday);
       weekStart.setHours(0, 0, 0, 0);
@@ -41,12 +44,14 @@ export default function GenerateReportButton() {
       let weekNumber = 1;
       while (weekStart <= today) {
         const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 4);
+        weekEnd.setDate(weekEnd.getDate() + 4); // Friday (Monday + 4 days)
 
+        // Only include weeks that overlap with or are after the trainee's start date
         if (weekEnd >= traineeStart) {
           const actualStart = weekNumber === 1 && traineeStart > weekStart ? traineeStart : weekStart;
           const actualEnd = weekEnd > today ? today : weekEnd;
 
+          // Skip if the week ends before the start date (e.g., partial week with no valid days)
           if (actualStart <= actualEnd) {
             weeks.push({
               week: weekNumber++,
@@ -56,7 +61,7 @@ export default function GenerateReportButton() {
           }
         }
 
-        weekStart.setDate(weekStart.getDate() + 7);
+        weekStart.setDate(weekStart.getDate() + 7); // Move to next Monday
       }
 
       setWeekRanges(weeks);
@@ -96,12 +101,12 @@ export default function GenerateReportButton() {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-center w-full sm:w-auto">
+    <div className="flex gap-4 items-center">
       <select
-        title="Select Week"
+      title="Select Week"
         value={selectedWeek || ""}
         onChange={(e) => setSelectedWeek(parseInt(e.target.value) || null)}
-        className="w-full sm:w-64 p-2 sm:p-2.5 text-sm sm:text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="p-2 border rounded"
       >
         <option value="">Select Week</option>
         {weekRanges.map(({ week, start, end }) => (
@@ -110,11 +115,7 @@ export default function GenerateReportButton() {
           </option>
         ))}
       </select>
-      <Button
-        onClick={handleGenerateReport}
-        disabled={!selectedWeek}
-        className="w-full sm:w-auto px-4 py-2 text-sm sm:text-base"
-      >
+      <Button onClick={handleGenerateReport} disabled={!selectedWeek}>
         Generate Report
       </Button>
     </div>
