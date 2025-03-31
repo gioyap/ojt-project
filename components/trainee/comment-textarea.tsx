@@ -15,7 +15,7 @@ export function CommentTextarea({ initialComment, date, traineeId }: CommentText
   const [comment, setComment] = useState(initialComment || "");
   const [isLoading, setIsLoading] = useState(false);
   const [charCount, setCharCount] = useState(comment.length);
-  const maxChars = 250;
+  const maxChars = 150;
 
   const formattedDate = new Intl.DateTimeFormat("en-US", {
     weekday: "long",

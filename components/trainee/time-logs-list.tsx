@@ -155,10 +155,6 @@ export function TimeLogsList({ timeLogs }: { timeLogs: TimeLog[] }) {
 								<span className="font-medium">Out:</span>{" "}
 								{formatTime(log.time_out)}
 							</p>
-							<p className="text-xs sm:text-sm text-gray-600">
-								<span className="font-medium">Edits:</span> {log.editcount || 0}
-								/{MAX_EDITS}
-							</p>
 						</div>
 						<div className="flex items-center gap-3 sm:gap-4 md:gap-6 shrink-0">
 							<div className="text-center">

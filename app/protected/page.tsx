@@ -39,7 +39,7 @@ export default async function ProtectedPage() {
 			<AppSidebar />
 			<div className="flex flex-col min-h-screen w-full bg-white/70 dark:bg-gray-900">
 				{/* Sidebar Trigger */}
-				<SidebarTrigger className="relative -top-12 left-4 p-4 shadow-lg hover:from-blue-800 hover:to-purple-700 transition-all" />
+				<SidebarTrigger className="fixed top-2 left-2 sm:top-4 sm:left-4 md:left-[260px] text-black p-2 shadow-lg z-50" />
 
 				{/* Main Content */}
 				<div className="p-2 sm:p-4 md:p-6 2xl:p-8 flex-1">

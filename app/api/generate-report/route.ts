@@ -48,6 +48,7 @@ export async function GET(request: Request) {
 
     const actualStart = traineeStart > selectedWeekStart ? traineeStart : selectedWeekStart;
 
+    // Fetch timelogs for the selected week
     const { data: timelogsData, error: timelogsError } = await supabase
       .from("timelogs")
       .select("date, time_in, time_out, total_dayhours, status_logs, comments")
@@ -61,6 +62,20 @@ export async function GET(request: Request) {
       const logDate = new Date(log.date);
       return logDate.getDay() >= 1 && logDate.getDay() <= 5;
     });
+
+    // Fetch all timelogs up to the current week to calculate total accumulated hours
+    const { data: allTimelogsData, error: allTimelogsError } = await supabase
+      .from("timelogs")
+      .select("total_dayhours")
+      .eq("trainee_id", user.id)
+      .lte("date", selectedWeekEnd.toISOString().split("T")[0]);
+    if (allTimelogsError) return NextResponse.json({ error: "Failed to fetch all timelogs" }, { status: 500 });
+
+    // Calculate timelog summary
+    const hoursToRender = internData.hours_to_render || 0;
+    const accumulatedHoursThisWeek = filteredTimelogs.reduce((sum, log) => sum + (log.total_dayhours || 0), 0);
+    const totalAccumulatedHours = allTimelogsData.reduce((sum, log) => sum + (log.total_dayhours || 0), 0);
+    const totalRemainingHours = Math.max(hoursToRender - totalAccumulatedHours, 0);
 
     const companyLogos = {
       "Beauty and Butter": "https://dgqbospvmigwtrtfkvor.supabase.co/storage/v1/object/public/companies/logos/bbIcon.png",
@@ -76,7 +91,7 @@ export async function GET(request: Request) {
         fullName,
         university: internData.university || "N/A",
         startDate: internData.start_date || "N/A",
-        hoursToRender: internData.hours_to_render || 0,
+        hoursToRender,
         deptName,
         program: internData.program || "N/A",
         yearLevel: internData.year_level || "N/A",
@@ -84,6 +99,12 @@ export async function GET(request: Request) {
         schedule: internData.schedule || "N/A",
         timelogs: filteredTimelogs,
         hostCompany: internData.host_company || "Flawless",
+      },
+      timelogSummary: {
+        hoursToRender,
+        accumulatedHoursThisWeek,
+        totalAccumulatedHours,
+        totalRemainingHours,
       },
       week,
       supervisorName,
