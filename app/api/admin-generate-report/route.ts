@@ -53,9 +53,6 @@ export async function GET(request: Request) {
       throw new Error("Failed to fetch intern data");
     }
 
-    // Log the dept_id to debug
-    console.log("Trainee dept_id:", internData.dept_id);
-
     // Fetch department data (optional)
     let deptName = "N/A";
     if (internData.dept_id) {
@@ -73,7 +70,7 @@ export async function GET(request: Request) {
     }
 
     // Fetch supervisor data based on dept_id
-    let supervisorName = "Supervisor Name"; // Default placeholder
+    let supervisorName = "Supervisor Name";
     if (internData.dept_id) {
       const { data: supervisorData, error: supervisorError } = await supabase
         .from("supervisors")
@@ -98,43 +95,29 @@ export async function GET(request: Request) {
     const traineeStart = new Date(internData.start_date);
     let weekStart = new Date(traineeStart);
 
-    // Adjust weekStart to the previous Monday if not already a Monday
-    const dayOfWeek = weekStart.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const dayOfWeek = weekStart.getDay();
     const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     weekStart.setDate(weekStart.getDate() - daysToMonday);
     weekStart.setHours(0, 0, 0, 0);
 
-    // Log to verify the adjustment
-    console.log("Initial trainee start date:", traineeStart.toISOString());
-    console.log("Adjusted weekStart (should be Monday):", weekStart.toISOString(), "Day:", weekStart.getDay());
-
-    // Calculate the start and end dates for the selected week
     const selectedWeekStart = new Date(weekStart);
     selectedWeekStart.setDate(selectedWeekStart.getDate() + (week - 1) * 7);
-    selectedWeekStart.setHours(0, 0, 0, 0); // Ensure time is reset
+    selectedWeekStart.setHours(0, 0, 0, 0);
 
     const selectedWeekEnd = new Date(selectedWeekStart);
-    selectedWeekEnd.setDate(selectedWeekEnd.getDate() + 4); // Friday (Monday + 4 days)
-    selectedWeekEnd.setHours(23, 59, 59, 999); // End of the day
+    selectedWeekEnd.setDate(selectedWeekEnd.getDate() + 4);
+    selectedWeekEnd.setHours(23, 59, 59, 999);
 
-    // Log to verify the week range
-    console.log("Selected Week Start (Monday):", selectedWeekStart.toISOString(), "Day:", selectedWeekStart.getDay());
-    console.log("Selected Week End (Friday):", selectedWeekEnd.toISOString(), "Day:", selectedWeekEnd.getDay());
-
-    // Adjust the start date if the intern's start_date is after the week's Monday
     const actualStart = traineeStart > selectedWeekStart ? traineeStart : selectedWeekStart;
     const actualEnd = selectedWeekEnd;
-
-    console.log("Actual Start:", actualStart.toISOString());
-    console.log("Actual End:", actualEnd.toISOString());
 
     // Fetch timelogs data for the trainee within the selected week
     const { data: timelogsData, error: timelogsError } = await supabase
       .from("timelogs")
       .select("date, time_in, time_out, total_dayhours, status_logs, comments")
       .eq("trainee_id", traineeId)
-      .gte("date", actualStart.toISOString().split("T")[0]) // Greater than or equal to start date
-      .lte("date", actualEnd.toISOString().split("T")[0]) // Less than or equal to end date
+      .gte("date", actualStart.toISOString().split("T")[0])
+      .lte("date", actualEnd.toISOString().split("T")[0])
       .order("date", { ascending: true });
 
     if (timelogsError) {
@@ -142,17 +125,25 @@ export async function GET(request: Request) {
       throw new Error("Failed to fetch timelogs data");
     }
 
-    // Filter timelogs to only include Monday to Friday (exclude Saturday and Sunday)
     const filteredTimelogsData = timelogsData.filter((log) => {
       const logDate = new Date(log.date);
-      const dayOfWeek = logDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-      const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5; // Monday to Friday
-      console.log(`Timelog Date: ${log.date}, Day: ${dayOfWeek}, Included: ${isWeekday}`);
-      return isWeekday;
+      const dayOfWeek = logDate.getDay();
+      return dayOfWeek >= 1 && dayOfWeek <= 5;
     });
 
-    // Log filtered timelogs for debugging
-    console.log("Filtered timelogs (Monday to Friday only):", filteredTimelogsData);
+    // Fetch all timelogs up to the current week to calculate total accumulated hours
+    const { data: allTimelogsData, error: allTimelogsError } = await supabase
+      .from("timelogs")
+      .select("total_dayhours")
+      .eq("trainee_id", traineeId)
+      .lte("date", selectedWeekEnd.toISOString().split("T")[0]);
+    if (allTimelogsError) throw new Error("Failed to fetch all timelogs");
+
+    // Calculate timelog summary
+    const hoursToRender = internData.hours_to_render || 0;
+    const accumulatedHoursThisWeek = filteredTimelogsData.reduce((sum, log) => sum + (log.total_dayhours || 0), 0);
+    const totalAccumulatedHours = allTimelogsData.reduce((sum, log) => sum + (log.total_dayhours || 0), 0);
+    const totalRemainingHours = Math.max(hoursToRender - totalAccumulatedHours, 0);
 
     // Prepare data
     const fullName = `${internData.first_name} ${internData.last_name}`;
@@ -160,11 +151,24 @@ export async function GET(request: Request) {
       `${internData.host_company} Internship - Week ${week}` ||
       `RSC GROUP INTERNSHIP - Week ${week}`;
     const university = internData.university || "N/A";
-    const hoursToRender = internData.hours_to_render || 0;
     const program = internData.program || "N/A";
     const yearLevel = internData.year_level || "N/A";
     const section = internData.section || "N/A";
     const schedule = internData.schedule || "N/A";
+
+    // Sanitize the first and last names for the filename
+    const sanitizedFirstName = internData.first_name
+      .replace(/[^a-zA-Z0-9\s-]/g, "") // Remove special characters
+      .replace(/\s+/g, "-") // Replace spaces with hyphens
+      .toLowerCase(); // Convert to lowercase for consistency
+
+    const sanitizedLastName = internData.last_name
+      .replace(/[^a-zA-Z0-9\s-]/g, "") // Remove special characters
+      .replace(/\s+/g, "-") // Replace spaces with hyphens
+      .toLowerCase(); // Convert to lowercase for consistency
+
+    // Combine the sanitized first and last names for the filename
+    const sanitizedTraineeNameForFilename = `${sanitizedFirstName}-${sanitizedLastName}`;
 
     // Determine the logo URL based on host_company
     const companyLogos = {
@@ -173,67 +177,115 @@ export async function GET(request: Request) {
       "Flawless": "https://dgqbospvmigwtrtfkvor.supabase.co/storage/v1/object/public/companies/logos/flawlessIcon.png",
       "MTSI": "https://dgqbospvmigwtrtfkvor.supabase.co/storage/v1/object/public/companies/logos/mtsilogo.png",
     };
-
-    // Get the logo URL based on the host_company
     const imageUrl = companyLogos[internData.host_company as keyof typeof companyLogos] || companyLogos["Flawless"];
-    console.log("Selected logo URL for company", internData.host_company, ":", imageUrl);
-    
+
     // Generate PDF
     const doc = new jsPDF();
-    
+
     // Fetch the image and process it
     const response = await fetch(imageUrl);
     if (!response.ok) throw new Error(`Failed to fetch image: ${imageUrl}`);
     const imageBuffer = await response.arrayBuffer();
     const imageBase64 = Buffer.from(imageBuffer).toString("base64");
     const imageDataUrl = `data:image/png;base64,${imageBase64}`;
-    
-    // Custom handling for each logo, based on host_company
+
+    // Define spacing constants
+    const pageMargin = 10;
+    const cardWidth = 210 - 2 * pageMargin;
+    const columnWidth = (cardWidth - 30) / 2;
+    const fontSize = 8;
+    const lineHeight = 3.5;
+    const cardPaddingTop = 2;
+    const titleHeight = 5;
+    const contentPaddingTop = 5;
+    const cardPaddingBottom = 2;
+    const gapBetweenCards = 3.5;
+    const summaryTableGap = 5;
+
+    // Define footer constants
+    const pageHeight = doc.internal.pageSize.height;
+    const footerHeight = 20;
+    const footerMargin = 10;
+    const maxContentY = pageHeight - footerHeight - footerMargin;
+
+    // Function to render the footer (signature section) on the current page
+    const renderFooter = () => {
+      const signatureY = pageHeight - footerHeight - 5;
+      const internSignatureX = pageMargin + 5;
+      const supervisorSignatureX = 145;
+      const signatureLineLength = 50;
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      const internNameWidth = doc.getTextWidth(fullName);
+      doc.setFont("helvetica", "bold");
+      const internTitleWidth = doc.getTextWidth("INTERN SIGNATURE");
+      const internMaxWidth = Math.max(internNameWidth, internTitleWidth, signatureLineLength);
+
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(50, 50, 50);
+      const internNameX = internSignatureX + (internMaxWidth - internNameWidth) / 2;
+      doc.text(fullName, internNameX, signatureY);
+
+      const internLineY = signatureY + 2;
+      const internLineStartX = internSignatureX + (internMaxWidth - signatureLineLength) / 2;
+      doc.setLineWidth(0.5);
+      doc.setDrawColor(0, 0, 0);
+      doc.line(internLineStartX, internLineY, internLineStartX + signatureLineLength, internLineY);
+
+      doc.setFont("helvetica", "bold");
+      const internTitleY = internLineY + 4;
+      const internTitleX = internSignatureX + (internMaxWidth - internTitleWidth) / 2;
+      doc.text("INTERN SIGNATURE", internTitleX, internTitleY);
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      const supervisorNameWidth = doc.getTextWidth(supervisorName);
+      doc.setFont("helvetica", "bold");
+      const supervisorTitleWidth = doc.getTextWidth("SUPERVISOR SIGNATURE");
+      const supervisorMaxWidth = Math.max(supervisorNameWidth, supervisorTitleWidth, signatureLineLength);
+
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(50, 50, 50);
+      const supervisorNameX = supervisorSignatureX + (supervisorMaxWidth - supervisorNameWidth) / 2;
+      doc.text(supervisorName, supervisorNameX, signatureY);
+
+      const supervisorLineY = signatureY + 2;
+      const supervisorLineStartX = supervisorSignatureX + (supervisorMaxWidth - signatureLineLength) / 2;
+      doc.setLineWidth(0.5);
+      doc.setDrawColor(0, 0, 0);
+      doc.line(supervisorLineStartX, supervisorLineY, supervisorLineStartX + signatureLineLength, supervisorLineY);
+
+      doc.setFont("helvetica", "bold");
+      const supervisorTitleY = supervisorLineY + 4;
+      const supervisorTitleX = supervisorSignatureX + (supervisorMaxWidth - supervisorTitleWidth) / 2;
+      doc.text("SUPERVISOR SIGNATURE", supervisorTitleX, supervisorTitleY);
+    };
+
+    // Function to check if we need a new page and render the footer
+    const checkPageBreak = (currentY: number, requiredHeight: number) => {
+      if (currentY + requiredHeight > maxContentY) {
+        doc.addPage();
+        renderFooter();
+        return 10;
+      }
+      return currentY;
+    };
+
+    // Custom handling for each logo
     let fixedWidth, fixedHeight, xPos, yPos;
-    
     switch (internData.host_company) {
       case "Flawless":
-        // Set specific dimensions for Flawless logo
-        fixedWidth = 40;
-        fixedHeight = 15;
-        xPos = 85;
-        yPos = 10;
-        break;
-    
+        fixedWidth = 40; fixedHeight = 15; xPos = 85; yPos = 10; break;
       case "Beauty and Butter":
-        // Set specific dimensions for Beauty and Butter logo
-        fixedWidth = 40;
-        fixedHeight = 15;
-        xPos = 85;
-        yPos = 5;
-        break;
-    
+        fixedWidth = 40; fixedHeight = 15; xPos = 85; yPos = 5; break;
       case "FINA":
-        // Set specific dimensions for FINA logo
-        fixedWidth = 45;
-        fixedHeight = 15;
-        xPos = 85;
-        yPos = 8;
-        break;
-    
+        fixedWidth = 45; fixedHeight = 15; xPos = 85; yPos = 8; break;
       case "MTSI":
-        // Set specific dimensions for MTSI logo
-        fixedWidth = 35;
-        fixedHeight = 25;
-        xPos = 85;
-        yPos = 3;
-        break;
-    
+        fixedWidth = 35; fixedHeight = 25; xPos = 85; yPos = 3; break;
       default:
-        // Default case for an unknown company, use Flawless as a fallback
-        fixedWidth = 40;
-        fixedHeight = 15;
-        xPos = 85;
-        yPos = 10;
-        break;
+        fixedWidth = 40; fixedHeight = 15; xPos = 85; yPos = 10; break;
     }
-    
-    // Add image with the calculated dimensions and position
     doc.addImage(imageDataUrl, "PNG", xPos, yPos, fixedWidth, fixedHeight);
 
     // Header
@@ -245,87 +297,218 @@ export async function GET(request: Request) {
     doc.text(companyTitle.toUpperCase(), 105, 30, { align: "center" });
 
     // Intern Details Card
-    doc.setFillColor(245, 245, 245);
-    doc.roundedRect(10, 40, 190, 44, 5, 5, "F");
-    doc.setFontSize(10);
-    doc.setTextColor(33, 150, 243);
-    doc.setFont("helvetica", "bold");
-    doc.text("INTERN DETAILS", 15, 47);
+    let currentY = 40;
+    currentY = checkPageBreak(currentY, 0);
+    const internCardY = currentY;
+    let leftYPosition = internCardY + cardPaddingTop + titleHeight + contentPaddingTop;
+    let rightYPosition = internCardY + cardPaddingTop + titleHeight + contentPaddingTop;
+    const leftLabelX = pageMargin + 5;
+    const rightLabelX = pageMargin + 5 + columnWidth + 10;
 
-    const details = [
-      { label: "Name", value: fullName },
-      { label: "University", value: university },
-      { label: "Start Date", value: internData.start_date || "N/A" },
-      { label: "Hours to Render", value: `${hoursToRender} hours` },
-      { label: "Department", value: deptName },
-      { label: "Program", value: program },
-      { label: "Year Level", value: yearLevel.toString() + "th" },
-      { label: "Section", value: section },
-      { label: "Schedule", value: schedule },
+    const leftColumnDetails = [
+      { label: "Name: ", value: fullName },
+      { label: "University: ", value: university },
+      { label: "Start Date: ", value: internData.start_date || "N/A" },
     ];
 
-    let yPosition = 55;
-    const column1X = 15;
-    const column2X = 110;
-    const maxTextWidth = 60;
-    const fontSize = 8;
+    const rightColumnDetails = [
+      { label: "Program: ", value: program },
+      { label1: "Year Level: ", value1: yearLevel + "th", label2: "Section: ", value2: section },
+      { label: "Department: ", value: deptName },
+    ];
 
-    const midPoint = Math.ceil(details.length / 2);
-    const column1Details = details.slice(0, midPoint);
-    const column2Details = details.slice(midPoint);
+    const leftColumnHeights: number[] = [];
+    leftColumnDetails.forEach((item) => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(fontSize);
+      const labelWidth = doc.getTextWidth(item.label ?? "");
+      doc.setFont("helvetica", "normal");
+      const maxTextWidth = columnWidth - labelWidth - 5;
+      const splitText = doc.splitTextToSize(item.value, maxTextWidth);
+      const height = lineHeight * splitText.length;
+      leftColumnHeights.push(height);
+    });
 
-    for (let i = 0; i < midPoint; i++) {
-      if (column1Details[i]) {
-        const item = column1Details[i];
+    const rightColumnHeights: number[] = [];
+    rightColumnDetails.forEach((item, index) => {
+      if (index === 1) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(fontSize);
+        const label1Width = doc.getTextWidth(item.label1 ?? "");
+        doc.setFont("helvetica", "normal");
+        const maxTextWidth1 = (columnWidth / 2) - label1Width - 2;
+        const splitText1 = doc.splitTextToSize(item.value1 ?? "", maxTextWidth1);
+
+        doc.setFont("helvetica", "bold");
+        const label2Width = doc.getTextWidth(item.label2 ?? "");
+        doc.setFont("helvetica", "normal");
+        const maxTextWidth2 = (columnWidth / 2) - label2Width - 2;
+        const splitText2 = doc.splitTextToSize(item.value2, maxTextWidth2);
+
+        const maxLines = Math.max(splitText1.length, splitText2.length);
+        const height = lineHeight * maxLines;
+        rightColumnHeights.push(height);
+      } else {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(fontSize);
+        const labelWidth = doc.getTextWidth(item.label ?? "");
+        doc.setFont("helvetica", "normal");
+        const maxTextWidth = columnWidth - labelWidth - 5;
+        const splitText = doc.splitTextToSize(item.value, maxTextWidth);
+        const height = lineHeight * splitText.length;
+        rightColumnHeights.push(height);
+      }
+    });
+
+    const leftColumnTotalHeight = leftColumnHeights.reduce((sum, height) => sum + height, 0);
+    const rightColumnTotalHeight = rightColumnHeights.reduce((sum, height) => sum + height, 0);
+    const contentHeight = Math.max(leftColumnTotalHeight, rightColumnTotalHeight);
+    const internCardHeight = cardPaddingTop + titleHeight + contentPaddingTop + contentHeight + cardPaddingBottom;
+
+    currentY = checkPageBreak(currentY, internCardHeight);
+    const adjustedInternCardY = currentY;
+
+    doc.setFillColor(240, 240, 240);
+    doc.roundedRect(pageMargin, adjustedInternCardY, cardWidth, internCardHeight, 5, 5, "F");
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "bold");
+    doc.text("INTERN DETAILS", pageMargin + 5, adjustedInternCardY + cardPaddingTop + 4);
+
+    leftYPosition = adjustedInternCardY + cardPaddingTop + titleHeight + contentPaddingTop;
+    leftColumnDetails.forEach((item) => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(fontSize);
+      doc.setTextColor(50, 50, 50);
+      const labelWidth = doc.getTextWidth(item.label ?? "");
+      doc.text(item.label, leftLabelX, leftYPosition);
+
+      doc.setFont("helvetica", "normal");
+      const valueX = leftLabelX + labelWidth;
+      const maxTextWidth = columnWidth - labelWidth - 5;
+      const splitText = doc.splitTextToSize(item.value, maxTextWidth);
+      doc.text(splitText, valueX, leftYPosition);
+      leftYPosition += lineHeight * splitText.length;
+    });
+
+    rightYPosition = adjustedInternCardY + cardPaddingTop + titleHeight + contentPaddingTop;
+    rightColumnDetails.forEach((item, index) => {
+      if (index === 1) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(fontSize);
         doc.setTextColor(50, 50, 50);
-        doc.text(`${item.label}:`, column1X, yPosition);
-        doc.setFont("helvetica", "normal");
-        const splitText = doc.splitTextToSize(item.value, maxTextWidth);
-        doc.text(splitText, column1X + 30, yPosition);
-      }
 
-      if (column2Details[i]) {
-        const item = column2Details[i];
+        const label1Width = doc.getTextWidth(item.label1 ?? "");
+        doc.text(item.label1 ?? "", rightLabelX, rightYPosition);
+
+        doc.setFont("helvetica", "normal");
+        const value1X = rightLabelX + label1Width;
+        const maxTextWidth1 = (columnWidth / 2) - label1Width - 2;
+        const splitText1 = doc.splitTextToSize(item.value1 ?? "", maxTextWidth1);
+        doc.text(splitText1, value1X, rightYPosition);
+
+        doc.setFont("helvetica", "bold");
+        const label2X = rightLabelX + (columnWidth / 2) + 5;
+        const label2Width = doc.getTextWidth(item.label2 ?? "");
+        doc.text(item.label2 ?? "", label2X, rightYPosition);
+
+        doc.setFont("helvetica", "normal");
+        const value2X = label2X + label2Width;
+        const maxTextWidth2 = (columnWidth / 2) - label2Width - 2;
+        const splitText2 = doc.splitTextToSize(item.value2, maxTextWidth2);
+        doc.text(splitText2, value2X, rightYPosition);
+
+        const maxLines = Math.max(splitText1.length, splitText2.length);
+        rightYPosition += lineHeight * maxLines;
+      } else {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(fontSize);
         doc.setTextColor(50, 50, 50);
-        doc.text(`${item.label}:`, column2X, yPosition);
-        doc.setFont("helvetica", "normal");
-        const splitText = doc.splitTextToSize(item.value, maxTextWidth);
-        doc.text(splitText, column2X + 25, yPosition);
-      }
+        const labelWidth = doc.getTextWidth(item.label ?? "");
+        doc.text(item.label ?? "", rightLabelX, rightYPosition);
 
-      yPosition += 6;
-    }
+        doc.setFont("helvetica", "normal");
+        const valueX = rightLabelX + labelWidth;
+        const maxTextWidth = columnWidth - labelWidth - 5;
+        const splitText = doc.splitTextToSize(item.value, maxTextWidth);
+        doc.text(splitText, valueX, rightYPosition);
+        rightYPosition += lineHeight * splitText.length;
+      }
+    });
+
+    const internCardBottomY = adjustedInternCardY + internCardHeight;
+    currentY = internCardBottomY + gapBetweenCards;
+
+    // Unified Timelogs Card (Timelog Summary and Timelogs Table)
+    currentY = checkPageBreak(currentY, 0);
+    const timelogsCardY = currentY;
+    let timelogLeftYPosition = timelogsCardY + cardPaddingTop + titleHeight + contentPaddingTop;
+    let timelogRightYPosition = timelogsCardY + cardPaddingTop + titleHeight + contentPaddingTop;
+    const timelogLeftLabelX = pageMargin + 5;
+    const timelogRightLabelX = pageMargin + 5 + columnWidth + 10;
+
+    const timelogLeftColumnDetails = [
+      { label: "Hours to Render: ", value: `${hoursToRender} Hours` },
+      { label: "Total Remaining: ", value: `${totalRemainingHours} Hours` },
+    ];
+
+    const timelogRightColumnDetails = [
+      { label: `Accumulated Hours (Week #${week}): `, value: `${accumulatedHoursThisWeek} Hours` },
+      { label: "Total Accumulated Hours: ", value: `${totalAccumulatedHours} Hours` },
+    ];
+
+    const timelogLeftColumnHeights: number[] = [];
+    timelogLeftColumnDetails.forEach((item) => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(fontSize);
+      const labelWidth = doc.getTextWidth(item.label);
+      const splitLabel = doc.splitTextToSize(item.label, columnWidth - 20);
+      doc.setFont("helvetica", "normal");
+      const maxTextWidth = columnWidth - labelWidth - 5;
+      const splitValue = doc.splitTextToSize(item.value, maxTextWidth);
+      const maxLines = Math.max(splitLabel.length, splitValue.length);
+      const height = lineHeight * maxLines;
+      timelogLeftColumnHeights.push(height);
+    });
+
+    const timelogRightColumnHeights: number[] = [];
+    timelogRightColumnDetails.forEach((item) => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(fontSize);
+      const labelWidth = doc.getTextWidth(item.label);
+      const splitLabel = doc.splitTextToSize(item.label, columnWidth - 20);
+      doc.setFont("helvetica", "normal");
+      const maxTextWidth = columnWidth - labelWidth - 5;
+      const splitValue = doc.splitTextToSize(item.value, maxTextWidth);
+      const maxLines = Math.max(splitLabel.length, splitValue.length);
+      const height = lineHeight * maxLines;
+      timelogRightColumnHeights.push(height);
+    });
+
+    const timelogLeftColumnTotalHeight = timelogLeftColumnHeights.reduce((sum, height) => sum + height, 0);
+    const timelogRightColumnTotalHeight = timelogRightColumnHeights.reduce((sum, height) => sum + height, 0);
+    const timelogSummaryContentHeight = Math.max(timelogLeftColumnTotalHeight, timelogRightColumnTotalHeight);
 
     // Timelogs Table
-    const tableStartY = 105;
-    const tableX = 15;
-    const cardWidth = 190;
+    let tableStartY = timelogsCardY + cardPaddingTop + titleHeight + contentPaddingTop + timelogSummaryContentHeight + summaryTableGap;
+    const tableX = pageMargin + 5;
     const cardPadding = 5;
     const tableWidth = cardWidth - 2 * cardPadding;
-    const columnWidths = [35, 20, 20, 20, 20, tableWidth - (35 + 20 + 20 + 20 + 20)];
-    const headers = ["DATE", "TIME IN", "TIME OUT", "TOTAL HOURS", "STATUS", "COMMENTS"];
-    const lineHeight = 4;
+    const columnWidths = [40, 25, 25, 25, tableWidth - (40 + 25 + 25 + 25)];
+    const headers = ["Date", "Time In", "Time Out", "Total Hours", "Comments"];
+    const tableLineHeight = 4;
     const cellPadding = 2;
-    const titleHeight = 10;
-    const titlePadding = 5;
     const headerHeight = 8;
 
-    // Function to convert 24-hour time to 12-hour AM/PM format
     const formatTimeTo12Hour = (time: string | null): string => {
       if (!time || time === "N/A") return "N/A";
       const [hoursStr, minutes] = time.split(":");
       let hours = parseInt(hoursStr, 10);
       const period = hours >= 12 ? "PM" : "AM";
-      hours = hours % 12;
-      if (hours === 0) hours = 12;
+      hours = hours % 12 || 12;
       return `${hours}:${minutes} ${period}`;
     };
 
-    // Function to format date as "Month Name, Day, Year"
     const formatDateToMonthDayYear = (dateStr: string | null): string => {
       if (!dateStr || dateStr === "N/A") return "N/A";
       const date = new Date(dateStr);
@@ -334,21 +517,15 @@ export async function GET(request: Request) {
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
       ];
-      const month = monthNames[date.getMonth()];
-      const day = date.getDate();
-      const year = date.getFullYear();
-      return `${month} ${day}, ${year}`;
+      return `${monthNames[date.getMonth()]}, ${date.getDate()}, ${date.getFullYear()}`;
     };
 
-    const minRowHeight = 1 * lineHeight + 2 * cellPadding;
-
-    // Use filteredTimelogsData instead of timelogsData
+    const minRowHeight = 1 * tableLineHeight + 2 * cellPadding;
     const rowDataArray = filteredTimelogsData.map((log) => [
       formatDateToMonthDayYear(log.date),
       formatTimeTo12Hour(log.time_in),
       formatTimeTo12Hour(log.time_out),
       log.total_dayhours ? `${log.total_dayhours} Hours` : "N/A",
-      log.status_logs || "N/A",
       log.comments || "N/A",
     ]);
 
@@ -358,98 +535,146 @@ export async function GET(request: Request) {
         const splitText = doc.splitTextToSize(cell, columnWidths[index] - 2 * cellPadding);
         maxLines = Math.max(maxLines, splitText.length);
       });
-      const calculatedHeight = maxLines * lineHeight + 2 * cellPadding;
-      return Math.max(calculatedHeight, minRowHeight);
+      return Math.max(maxLines * tableLineHeight + 2 * cellPadding, minRowHeight);
     });
 
-    const totalRowsHeight = rowHeights.reduce((sum, height) => sum + height, 0);
-    const totalSpacingBetweenRows = (rowDataArray.length - 1) * 1;
-    const totalTableHeight = titleHeight + titlePadding + headerHeight + totalRowsHeight + totalSpacingBetweenRows + 5;
+    const totalRowsHeight = rowHeights.reduce((sum: number, height: number) => sum + height, 0);
+    const totalSpacingBetweenRows = (rowDataArray.length - 1) * tableLineHeight;
+    const totalTableHeight = headerHeight + totalRowsHeight + totalSpacingBetweenRows;
 
-    doc.setFillColor(245, 245, 245);
-    doc.roundedRect(10, 90, cardWidth, totalTableHeight, 5, 5, "F");
+    const timelogsCardHeight = cardPaddingTop + titleHeight + contentPaddingTop + timelogSummaryContentHeight + summaryTableGap + totalTableHeight + cardPaddingBottom;
 
+    currentY = checkPageBreak(currentY, timelogsCardHeight);
+    const adjustedTimelogsCardY = currentY;
+
+    doc.setFillColor(240, 240, 240);
+    doc.roundedRect(pageMargin, adjustedTimelogsCardY, cardWidth, timelogsCardHeight, 5, 5, "F");
     doc.setFontSize(10);
-    doc.setTextColor(33, 150, 243);
+    doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
-    doc.text("TIMELOGS", tableX, 97);
+    doc.text("TIMELOGS", pageMargin + 5, adjustedTimelogsCardY + cardPaddingTop + 4);
+
+    timelogLeftYPosition = adjustedTimelogsCardY + cardPaddingTop + titleHeight + contentPaddingTop;
+    timelogLeftColumnDetails.forEach((item) => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(fontSize);
+      doc.setTextColor(50, 50, 50);
+      const labelWidth = doc.getTextWidth(item.label);
+      const splitLabel = doc.splitTextToSize(item.label, columnWidth - 20);
+      doc.text(splitLabel, timelogLeftLabelX, timelogLeftYPosition);
+
+      doc.setFont("helvetica", "normal");
+      const valueX = timelogLeftLabelX + labelWidth;
+      const maxTextWidth = columnWidth - labelWidth - 5;
+      const splitValue = doc.splitTextToSize(item.value, maxTextWidth);
+      doc.text(splitValue, valueX, timelogLeftYPosition);
+      timelogLeftYPosition += lineHeight * Math.max(splitLabel.length, splitValue.length);
+    });
+
+    timelogRightYPosition = adjustedTimelogsCardY + cardPaddingTop + titleHeight + contentPaddingTop;
+    timelogRightColumnDetails.forEach((item) => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(fontSize);
+      doc.setTextColor(50, 50, 50);
+      const labelWidth = doc.getTextWidth(item.label);
+      const splitLabel = doc.splitTextToSize(item.label, columnWidth - 20);
+      doc.text(splitLabel, timelogRightLabelX, timelogRightYPosition);
+
+      doc.setFont("helvetica", "normal");
+      const valueX = timelogRightLabelX + labelWidth;
+      const maxTextWidth = columnWidth - labelWidth - 5;
+      const splitValue = doc.splitTextToSize(item.value, maxTextWidth);
+      doc.text(splitValue, valueX, timelogRightYPosition);
+      timelogRightYPosition += lineHeight * Math.max(splitLabel.length, splitValue.length);
+    });
+
+    // Render Timelogs Table
+    tableStartY = adjustedTimelogsCardY + cardPaddingTop + titleHeight + contentPaddingTop + timelogSummaryContentHeight + summaryTableGap;
+    let rowY = tableStartY + headerHeight;
 
     doc.setFillColor(200, 200, 200);
-    doc.rect(tableX, tableStartY - 4, tableWidth, headerHeight, "F");
+    doc.rect(tableX, tableStartY, tableWidth, headerHeight, "F");
+
+    doc.setDrawColor(150, 150, 150);
+    doc.setLineWidth(0.2);
+    let currentX = tableX;
+    for (let i = 0; i <= columnWidths.length; i++) {
+      doc.line(currentX, tableStartY, currentX, tableStartY + headerHeight);
+      if (i < columnWidths.length) currentX += columnWidths[i];
+    }
+    doc.line(tableX, tableStartY + headerHeight, tableX + tableWidth, tableStartY + headerHeight);
+
     doc.setFontSize(8);
     doc.setTextColor(50, 50, 50);
     doc.setFont("helvetica", "bold");
-    let currentX = tableX;
+    currentX = tableX;
     headers.forEach((header, index) => {
       const splitHeader = doc.splitTextToSize(header, columnWidths[index] - 2 * cellPadding);
-      doc.text(splitHeader, currentX + cellPadding, tableStartY);
+      doc.text(splitHeader, currentX + cellPadding, tableStartY + 4);
       currentX += columnWidths[index];
     });
 
     doc.setFont("helvetica", "normal");
-    let rowY = tableStartY + headerHeight;
-    rowDataArray.forEach((row, rowIndex) => {
-      currentX = tableX;
+    rowDataArray.forEach((row: string[], rowIndex: number) => {
       const rowHeight = rowHeights[rowIndex];
+      tableStartY = checkPageBreak(tableStartY, rowHeight + (rowIndex === 0 ? headerHeight : 0));
+      if (rowIndex === 0) {
+        doc.setFillColor(200, 200, 200);
+        doc.rect(tableX, tableStartY, tableWidth, headerHeight, "F");
+        currentX = tableX;
+        for (let i = 0; i <= columnWidths.length; i++) {
+          doc.line(currentX, tableStartY, currentX, tableStartY + headerHeight);
+          if (i < columnWidths.length) currentX += columnWidths[i];
+        }
+        doc.line(tableX, tableStartY + headerHeight, tableX + tableWidth, tableStartY + headerHeight);
+        doc.setFontSize(8);
+        doc.setTextColor(50, 50, 50);
+        doc.setFont("helvetica", "bold");
+        currentX = tableX;
+        headers.forEach((header, index) => {
+          const splitHeader = doc.splitTextToSize(header, columnWidths[index] - 2 * cellPadding);
+          doc.text(splitHeader, currentX + cellPadding, tableStartY + 4);
+          currentX += columnWidths[index];
+        });
+        rowY = tableStartY + headerHeight;
+      }
+
+      currentX = tableX;
+      for (let i = 0; i <= columnWidths.length; i++) {
+        doc.line(currentX, rowY, currentX, rowY + rowHeight);
+        if (i < columnWidths.length) currentX += columnWidths[i];
+      }
+      doc.line(tableX, rowY + rowHeight, tableX + tableWidth, rowY + rowHeight);
+
+      currentX = tableX;
       row.forEach((cell, index) => {
         const splitText = doc.splitTextToSize(cell, columnWidths[index] - 2 * cellPadding);
-        doc.text(splitText, currentX + cellPadding, rowY + cellPadding);
+        doc.text(splitText, currentX + cellPadding, rowY + cellPadding + 2);
         currentX += columnWidths[index];
       });
-      rowY += rowHeight + 1;
+
+      rowY += rowHeight;
+      tableStartY = rowY;
     });
 
-    // Signature Sections
-    const signatureY = 260;
-    const internSignatureX = 15;
-    const supervisorSignatureX = 145;
-    const signatureLineLength = 50;
+    // Supervisor Comments Card
+    currentY = adjustedTimelogsCardY + timelogsCardHeight + gapBetweenCards;
+    currentY = checkPageBreak(currentY, 0);
+    const supervisorCommentsCardY = currentY;
+    const supervisorCommentsCardHeight = cardPaddingTop + titleHeight + cardPaddingBottom + 15;
 
+    currentY = checkPageBreak(currentY, supervisorCommentsCardHeight);
+    const adjustedSupervisorCommentsCardY = currentY;
+
+    doc.setFillColor(240, 240, 240);
+    doc.roundedRect(pageMargin, adjustedSupervisorCommentsCardY, cardWidth, supervisorCommentsCardHeight, 5, 5, "F");
     doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    const internNameWidth = doc.getTextWidth(fullName);
+    doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
-    const internTitleWidth = doc.getTextWidth("INTERN SIGNATURE");
-    const internMaxWidth = Math.max(internNameWidth, internTitleWidth, signatureLineLength);
+    doc.text("SUPERVISOR COMMENTS", pageMargin + 5, adjustedSupervisorCommentsCardY + cardPaddingTop + 4);
 
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(50, 50, 50);
-    const internNameX = internSignatureX + (internMaxWidth - internNameWidth) / 2;
-    doc.text(fullName, internNameX, signatureY);
-
-    const internLineY = signatureY + 2;
-    const internLineStartX = internSignatureX + (internMaxWidth - signatureLineLength) / 2;
-    doc.setLineWidth(0.5);
-    doc.setDrawColor(0, 0, 0);
-    doc.line(internLineStartX, internLineY, internLineStartX + signatureLineLength, internLineY);
-
-    doc.setFont("helvetica", "bold");
-    const internTitleY = internLineY + 4;
-    const internTitleX = internSignatureX + (internMaxWidth - internTitleWidth) / 2;
-    doc.text("INTERN SIGNATURE", internTitleX, internTitleY);
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    const supervisorNameWidth = doc.getTextWidth(supervisorName);
-    doc.setFont("helvetica", "bold");
-    const supervisorTitleWidth = doc.getTextWidth("SUPERVISOR SIGNATURE");
-    const supervisorMaxWidth = Math.max(supervisorNameWidth, supervisorTitleWidth, signatureLineLength);
-
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(50, 50, 50);
-    const supervisorNameX = supervisorSignatureX + (supervisorMaxWidth - supervisorNameWidth) / 2;
-    doc.text(supervisorName, supervisorNameX, signatureY);
-
-    const supervisorLineY = signatureY + 2;
-    const supervisorLineStartX = supervisorSignatureX + (supervisorMaxWidth - signatureLineLength) / 2;
-    doc.setLineWidth(0.5);
-    doc.setDrawColor(0, 0, 0);
-    doc.line(supervisorLineStartX, supervisorLineY, supervisorLineStartX + signatureLineLength, supervisorLineY);
-
-    doc.setFont("helvetica", "bold");
-    const supervisorTitleY = supervisorLineY + 4;
-    const supervisorTitleX = supervisorSignatureX + (supervisorMaxWidth - supervisorTitleWidth) / 2;
-    doc.text("SUPERVISOR SIGNATURE", supervisorTitleX, supervisorTitleY);
+    // Render the footer on the first page
+    renderFooter();
 
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
     console.log("PDF generated successfully, buffer length:", pdfBuffer.length);
@@ -458,7 +683,7 @@ export async function GET(request: Request) {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="internship-report-week-${week}-trainee-${traineeId}.pdf"`,
+        "Content-Disposition": `attachment; filename="internship-report-week-${week}-${sanitizedFirstName}-${sanitizedLastName}.pdf"`,
         "Content-Length": pdfBuffer.length.toString(),
       },
     });
