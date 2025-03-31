@@ -11,9 +11,8 @@ export default async function Signup(props: {
 	searchParams: Promise<Message>;
 }) {
 	const searchParams = await props.searchParams;
-	const supabase = await createClient(); // Await the createClient function
+	const supabase = await createClient();
 
-	// Fetch departments from the department table
 	const { data: departments, error } = await supabase
 		.from("department")
 		.select("dept_id, dept_name");
@@ -36,14 +35,13 @@ export default async function Signup(props: {
 	}
 
 	return (
-		<>
-			{/* Background Wrapper */}
-			<div
-				className="fixed w-full min-h-screen bg-cover bg-center bg-no-repeat"
-				style={{ backgroundImage: "url('/landing-bg.png')" }}
-			>
-				{/* Form Container */}
-				<form className="flex flex-col w-full max-w-4xl mx-auto bg-white bg-opacity-80 p-8 rounded-lg shadow-lg mt-16 sm:mt-8">
+		<div
+			className="min-h-screen bg-cover bg-center bg-no-repeat bg-fixed"
+			style={{ backgroundImage: "url('/landing-bg.png')" }}
+		>
+			{/* Mobile-friendly container with padding and scrolling */}
+			<div className="w-full min-h-screen p-4 overflow-y-auto">
+				<form className="flex flex-col w-full max-w-4xl mx-auto bg-white bg-opacity-90 p-6 rounded-lg shadow-lg my-8">
 					<h1 className="text-2xl font-medium text-center">Sign up</h1>
 					<p className="text-sm text-center text-foreground mt-2">
 						Already have an account?{" "}
@@ -52,11 +50,10 @@ export default async function Signup(props: {
 						</Link>
 					</p>
 
-					{/* Grid Layout for Two Columns */}
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-8">
-						{/* Left Column */}
-						<div className="flex flex-col gap-6">
-							{/* Email Field */}
+					{/* Single column layout for mobile */}
+					<div className="flex flex-col gap-4 mt-6">
+						{/* Email Field */}
+						<div className="flex flex-col gap-2">
 							<Label htmlFor="email">Email</Label>
 							<Input
 								id="email"
@@ -64,8 +61,10 @@ export default async function Signup(props: {
 								placeholder="you@example.com"
 								required
 							/>
+						</div>
 
-							{/* Password Field */}
+						{/* Password Field */}
+						<div className="flex flex-col gap-2">
 							<Label htmlFor="password">Password</Label>
 							<Input
 								id="password"
@@ -75,26 +74,32 @@ export default async function Signup(props: {
 								minLength={6}
 								required
 							/>
+						</div>
 
-							{/* First Name Field */}
-							<Label htmlFor="first_name">First Name</Label>
-							<Input
-								id="first_name"
-								name="first_name"
-								placeholder="John"
-								required
-							/>
+						{/* Name Fields */}
+						<div className="grid grid-cols-2 gap-4">
+							<div className="flex flex-col gap-2">
+								<Label htmlFor="first_name">First Name</Label>
+								<Input
+									id="first_name"
+									name="first_name"
+									placeholder="John"
+									required
+								/>
+							</div>
+							<div className="flex flex-col gap-2">
+								<Label htmlFor="last_name">Last Name</Label>
+								<Input
+									id="last_name"
+									name="last_name"
+									placeholder="Doe"
+									required
+								/>
+							</div>
+						</div>
 
-							{/* Last Name Field */}
-							<Label htmlFor="last_name">Last Name</Label>
-							<Input
-								id="last_name"
-								name="last_name"
-								placeholder="Doe"
-								required
-							/>
-
-							{/* University Field */}
+						{/* University Field */}
+						<div className="flex flex-col gap-2">
 							<Label htmlFor="university">University</Label>
 							<Input
 								id="university"
@@ -104,9 +109,8 @@ export default async function Signup(props: {
 							/>
 						</div>
 
-						{/* Right Column */}
-						<div className="flex flex-col gap-6">
-							{/* Phone Number Field */}
+						{/* Phone Number Field */}
+						<div className="flex flex-col gap-2">
 							<Label htmlFor="phone_no">Phone Number</Label>
 							<Input
 								id="phone_no"
@@ -115,12 +119,16 @@ export default async function Signup(props: {
 								placeholder="1234567890"
 								required
 							/>
+						</div>
 
-							{/* Start Date Field */}
+						{/* Start Date Field */}
+						<div className="flex flex-col gap-2">
 							<Label htmlFor="start_date">Start Date</Label>
 							<Input id="start_date" name="start_date" type="date" required />
+						</div>
 
-							{/* Hours to Render Field */}
+						{/* Hours to Render Field */}
+						<div className="flex flex-col gap-2">
 							<Label htmlFor="hours_to_render">Hours to Render</Label>
 							<Input
 								id="hours_to_render"
@@ -129,8 +137,10 @@ export default async function Signup(props: {
 								placeholder="100"
 								required
 							/>
+						</div>
 
-							{/* Department Dropdown */}
+						{/* Department Dropdown */}
+						<div className="flex flex-col gap-2">
 							<Label htmlFor="dept_id">Department</Label>
 							<select
 								title="department"
@@ -146,8 +156,10 @@ export default async function Signup(props: {
 									</option>
 								))}
 							</select>
+						</div>
 
-							{/* Program Field */}
+						{/* Program Field */}
+						<div className="flex flex-col gap-2">
 							<Label htmlFor="program">Program/Course</Label>
 							<Input
 								id="program"
@@ -156,32 +168,27 @@ export default async function Signup(props: {
 								required
 							/>
 						</div>
-					</div>
 
-					{/* Bottom Section */}
-					<div className="flex flex-col sm:flex-row gap-6 mt-8">
-						{/* Year Level Field */}
-						<div className="flex flex-col w-full sm:w-1/2">
-							<Label htmlFor="year_level">Year Level</Label>
-							<Input
-								id="year_level"
-								name="year_level"
-								type="number"
-								placeholder="4"
-								required
-							/>
+						{/* Year Level and Section */}
+						<div className="grid grid-cols-2 gap-4">
+							<div className="flex flex-col gap-2">
+								<Label htmlFor="year_level">Year Level</Label>
+								<Input
+									id="year_level"
+									name="year_level"
+									type="number"
+									placeholder="4"
+									required
+								/>
+							</div>
+							<div className="flex flex-col gap-2">
+								<Label htmlFor="section">Section</Label>
+								<Input id="section" name="section" placeholder="A" required />
+							</div>
 						</div>
 
-						{/* Section Field */}
-						<div className="flex flex-col w-full sm:w-1/2">
-							<Label htmlFor="section">Section</Label>
-							<Input id="section" name="section" placeholder="A" required />
-						</div>
-					</div>
-
-					<div className="flex flex-col sm:flex-row gap-6 mt-8">
-						{/* Host Company Field */}
-						<div className="flex flex-col w-full sm:w-1/2">
+						{/* Host Company */}
+						<div className="flex flex-col gap-2">
 							<Label htmlFor="host_company">Host Company</Label>
 							<select
 								title="host_company"
@@ -198,8 +205,8 @@ export default async function Signup(props: {
 							</select>
 						</div>
 
-						{/* Schedule Field */}
-						<div className="flex flex-col w-full sm:w-1/2">
+						{/* Schedule */}
+						<div className="flex flex-col gap-2">
 							<Label htmlFor="schedule">Schedule</Label>
 							<select
 								title="schedule"
@@ -216,22 +223,20 @@ export default async function Signup(props: {
 					</div>
 
 					{/* Submit Button */}
-					<div className="mt-4 flex justify-center">
-						{" "}
-						{/* Added flex container with centering */}
+					<div className="mt-6">
 						<SubmitButton
 							formAction={signUpAction}
 							pendingText="Signing up..."
-							className="w-full w-full"
+							className="w-full"
 						>
 							Sign up
 						</SubmitButton>
 					</div>
 
-					{/* Form Message (for errors or success messages) */}
+					{/* Form Message */}
 					<FormMessage message={searchParams} />
 				</form>
 			</div>
-		</>
+		</div>
 	);
 }

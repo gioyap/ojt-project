@@ -42,10 +42,11 @@ export default async function SignupAdmin(props: {
 				style={{ backgroundImage: "url('/landing-bg.png')" }}
 			></div>
 
-			{/* Form container positioned on the left */}
-			<div className="flex items-center min-h-screen">
-				<div className="w-[30%] ml-44 bg-white/90 p-8 rounded-lg shadow-lg">
+			{/* Form container positioned further right */}
+			<div className="flex items-center min-h-screen md:pl-56">
+				<div className="bg-white/90 p-8 rounded-lg shadow-lg w-full max-w-md mx-auto md:mx-0">
 					<h1 className="text-3xl font-semibold mb-6">Admin Sign Up</h1>
+
 					<p className="text-sm text-foreground mb-6">
 						Already have an account?{" "}
 						<Link className="text-primary font-medium underline" href="/">
@@ -104,10 +105,11 @@ export default async function SignupAdmin(props: {
 							))}
 						</select>
 
-						{/* Submit Button */}
+						{/* Submit Button (full width) */}
 						<SubmitButton
 							formAction={signUpAdminAction}
 							pendingText="Signing up..."
+							className="w-full"
 						>
 							Sign up
 						</SubmitButton>
