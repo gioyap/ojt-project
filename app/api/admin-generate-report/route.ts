@@ -70,7 +70,7 @@ export async function GET(request: Request) {
     }
 
     // Fetch supervisor data based on dept_id
-    let supervisorName = "Supervisor Name";
+    let supervisorName = "";
     if (internData.dept_id) {
       const { data: supervisorData, error: supervisorError } = await supabase
         .from("supervisors")

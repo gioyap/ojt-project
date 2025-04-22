@@ -31,7 +31,7 @@ export async function GET(request: Request) {
       .eq("dept_id", internData.dept_id)
       .limit(1)
       .maybeSingle();
-    const supervisorName = supervisorData ? `${supervisorData.first_name} ${supervisorData.last_name}` : "Supervisor Name";
+    const supervisorName = supervisorData ? `${supervisorData.first_name} ${supervisorData.last_name}` : "";
 
     const traineeStart = new Date(internData.start_date);
     let weekStart = new Date(traineeStart);
