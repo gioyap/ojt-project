@@ -17,8 +17,8 @@ import { signOutAction } from "@/app/actions";
 import { ThemeSwitcher } from "../theme-switcher";
 
 // ✅ Place the constants at the top
-const DEFAULT_AVATAR_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/defpic/avatar.png`;
-const BACKUP_AVATAR_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-picture/avatar.png`;
+const DEFAULT_AVATAR_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/defpic/avatarImage.png`;
+const BACKUP_AVATAR_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-picture/avatarImage.png`;
 
 interface User {
 	name: string;
